@@ -1,30 +1,75 @@
 <?php
-require_once 'libs/init.php';
 
+require_once __DIR__ . '/libs/init.php';
 
 $conn = Database::getConnection();
 
-$query = "SELECT * FROM Users;";
+$email = "nisath.hex@gmail.com";
+$password = "nisath";
 
-// if($conn) {
-  
+
+
+$user = new Users();
+$user = $user->_login($email, $password);
+
+echo 'Welcome, MR.' . ucfirst($user['username'] ?? 'Unknown');
+// function getUser($conn, $id) {
+//     $query = "SELECT * FROM Users WHERE id = :id LIMIT 1";
 
 //     $stmt = $conn->prepare($query);
-//     $stmt->execute();
-//     $account = $stmt->fetch(PDO::FETCH_ASSOC);
+//     $stmt->execute(['id' => $id]);
+
+//     if ($user = $stmt->fetch()) {
+//         return $user;
+//     } else {
+//         return false;
+//     }
 // }
 
-if ($stmt = $conn->prepare($query)) {
+// $user = getUser($conn, 1);
+// echo $user['username'];
 
-    /* execute statement */
-    $stmt->execute();
+// function getAllUsers(PDO $conn): array
+// {
+//     $query = "SELECT * FROM Users";
 
-    /* fetch values */
-    while ($row = $stmt->fetch()) {
-        // printf ("%s (%s)\n", $name, $code);
-        echo $row['username'];
-    }
+//     $stmt = $conn->prepare($query);
+//     if($stmt->execute()) {
+//         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+//         // return $stmt->fetchAll();   
+//     } else {
+//         return [];
+//     }
+// /*
+//     PDO::FETCH_ASSOC
+//         $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    /* close statement */
-    $stmt->close();
-}
+//         This tells PDO to return each row using only column names:
+
+//         [
+//             'id' => 1,
+//             'name' => 'TEORA'
+//         ]
+
+//         Without PDO::FETCH_ASSOC, PDO may return both numeric and named indexes:
+
+//         [
+//             0      => 1,
+//             'id'   => 1,
+//             1      => 'TEORA',
+//             'name' => 'TEORA'
+//         ]
+
+//         So PDO::FETCH_ASSOC avoids duplicated values and is recommended.
+//  */
+    
+// }
+
+// $users = getAllUsers($conn);
+
+// foreach ($users as $user) {
+//     echo htmlspecialchars($user['username']) . '<br>';
+//     // echo "<pre>";
+//     // print_r($user);
+//     // echo "</pre>";
+// }

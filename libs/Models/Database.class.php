@@ -1,27 +1,23 @@
 <?php
-class Database {
-    public static $conn = null;
 
-    public static function getConnection() {
-        if(Database::$conn == null) {
-            $servername = 'localhost';
-            $username = 'root';
-            $password = 'sdfk2RCIfmkosC4CQ1E1E';
-            $dbname = 'elite-fort';
+class Database
+{
+    private static ?PDO $connection = null;
 
-            // Create connection
-            $conn = new mysqli($servername, $username, $password, $dbname);
-            // Check connection
-            if ($conn->connect_error) {
-                die("Connection failed: " . $conn->connect_error);
-            } else {
-                // printf("New Connection Establishing....\n");
-                Database::$conn = $conn;
-                return Database::$conn;
-            }
-        }else {
-            // printf("Returning Existing Connection...\n");
-            return Database::$conn;
+    public static function getConnection(): PDO
+    {
+        if (self::$connection === null) {
+            self::$connection = new PDO(
+                'mysql:host=localhost;dbname=elite-fort;charset=utf8mb4',
+                'root',
+                'sdfk2RCIfmkosC4CQ1E1E',
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
         }
+
+        return self::$connection;
     }
 }
