@@ -14,13 +14,18 @@ $password = "nisath";
 // $user = new User($email);
 // $user = User::_login($email, $password);
 
-User::_signup("Hexona Teora", "teona", "teona@gmail.com, ", "pasdasf");
-// User::_exists("nisath.hexASDA@gASDASmail.com","nisatfsdfsfh");
+User::_signup("Hexona Teora", "hDfii", "h@dfsmail.com, ", "pasdfssf", 'pasdfssf');
+
+// if(User::_exists("nisath.hex@dddgmail.com","nisath")) {
+//     echo "Not Exist";
+// } else {
+//     echo "Exist";
+// }
 // echo "<pre>";
 // print_r($_SERVER);
 // echo "</pre>";
 // echo $user->id;
-// $user = $user->_login($email, $password);
+// $user = User::_login($email, $password);
 
 // print_r($user);
 

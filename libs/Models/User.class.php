@@ -70,39 +70,41 @@ class User{
         }
     }
 
-    public static function _signup($fullName, $username, $email, $password, /*$cPassword*/) {
+    public static function _signup($fullName, $username, $email, $password, $cPassword) {
         $conn = Database::getConnection();
 
         $result = self::_exists($email, $username);
         if($result === true) {
             try {
-                // if($password === $cPassword) {
-                //     return false;
-                // }
+                if($password === $cPassword) {
 
-                $ip = $_SERVER['REMOTE_ADDR'];
-                $agent = $_SERVER['HTTP_USER_AGENT'];
+                    $ip = $_SERVER['REMOTE_ADDR'];
+                    $agent = $_SERVER['HTTP_USER_AGENT'];
+                    $pass = password_hash($password, PASSWORD_DEFAULT);
 
+                    $query = "INSERT INTO `Auth` (`fullname`, `username`, `email`, `password`, `register_date`, `register_ip`, `register_agent`)
+            VALUES (:fullname, :username, :email, :password, now(), :ip, :agent);";
+                
+                    $stmt = $conn->prepare($query);
 
-
-                $query = "INSERT INTO `Auth` (`fullname`, `username`, `email`, `password`, `register_date`, `register_ip`, `register_agent`)
-        VALUES (:fullname, :username, :email, :password, now(), :ip, :agent);";
-            
-                $stmt = $conn->prepare($query);
-
-                $stmt->execute([
-                    'fullname'  =>  $fullName,
-                    'username'  =>  $username,
-                    'email'     =>  $email,
-                    'password'  =>  $password,
-                    'ip'        =>  $ip,
-                    'agent'     =>  $agent
-                ]);
+                    $stmt->execute([
+                        'fullname'  =>  $fullName,
+                        'username'  =>  $username,
+                        'email'     =>  $email,
+                        'password'  =>  $pass,
+                        'ip'        =>  $ip,
+                        'agent'     =>  $agent
+                    ]);
+                } else {
+                    echo "Confirm Password is not correct";
+                    return false;
+                }
             } catch(PDOException $e) {
                 echo $e->getMessage();
             }
         } else {
-            echo "failed to register account";
+            echo "Username or Email already exists.";
+            return false;
         }
         
     }
@@ -127,7 +129,7 @@ class User{
         $row = $check->fetch();
         // var_dump($row);
         // exit();
-        if ($row) {
+        if ($row != null) {
             // throw new AuthException('An account already exists with this email address.');
             return false;
         } else {
