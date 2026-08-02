@@ -9,10 +9,22 @@ $password = "nisath";
 
 
 
-$user = new Users();
-$user = $user->_login($email, $password);
 
-echo 'Welcome, MR.' . ucfirst($user['username'] ?? 'Unknown');
+
+// $user = new User($email);
+// $user = User::_login($email, $password);
+
+User::_signup("Hexona Teora", "teona", "teona@gmail.com, ", "pasdasf");
+// User::_exists("nisath.hexASDA@gASDASmail.com","nisatfsdfsfh");
+// echo "<pre>";
+// print_r($_SERVER);
+// echo "</pre>";
+// echo $user->id;
+// $user = $user->_login($email, $password);
+
+// print_r($user);
+
+// echo 'Welcome, MR.' . ucfirst($user ?? 'Unknown');
 // function getUser($conn, $id) {
 //     $query = "SELECT * FROM Users WHERE id = :id LIMIT 1";
 
