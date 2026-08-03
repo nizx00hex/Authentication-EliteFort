@@ -45,29 +45,24 @@ class User{
         
         $stmt = $conn->prepare($query);
 
-        $stmt->execute(['email'    => trim($email)]);
+        $stmt->execute([
+            'email'    => trim($email)
+        ]);
 
         // $email = htmlspecialchars(strip_tags($email));
         // $stmt->bindParam(':email', $email);
-        $userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 // print_r($userInfo);
         
-        if ($userInfo) {
-                // print_r($userInfo);
-
-            if (password_verify($password, $userInfo['password'])) {
-                // print_r($userInfo);
-
-                // _addSession($userInfo['username'], $token, $expiry);
-                // echo "works";
-                // print_r($userInfo);
-                return $userInfo['username'];
-            } else {
-                return false;
-            }
-        } else {
-            return false;
+        if (!$user) {
+            // print_r($userInfo);
+            throw new Exception("Enter the correct email or password.");
         }
+        if (!password_verify($password, $user['password'])) {
+            throw new Exception("Enter the correct email or password.");
+        }
+
+        return $user;
     }
 
     public static function _signup($fullName, $username, $email, $password, $cPassword) {
