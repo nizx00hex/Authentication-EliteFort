@@ -4,25 +4,29 @@ require_once __DIR__ . '/libs/init.php';
 $success = '';
 $error = '';
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if ($email === '' || $password === '') {
-        $error = 'Email and password are required.';
+        $error = "Email and password are required.";
     } else {
-        $user = User::_login($email, $password);
 
-        if ($user !== false) {
-            $_SESSION['username'] = $user;
-            $_SESSION['isloggedin'] = true;
-
-            // header('Location: dashboard.php');
+        try {
+            $user = User::_login($email, $password);
+            // var_dump($user);
             // exit;
-            $success = 'Login successful.';
-        }
 
-        $error = 'Enter the correct email or password.';
+            Session::set('user_id', $user['id']);
+            Session::set('username', $user['username']);
+            Session::set('isLoggedIn', true);
+
+            header("Location: dashboard.php");
+            exit;
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+        }
     }
 }
 
@@ -252,31 +256,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     <?php endif; ?>
 
-
-    <?php if (!empty($success)): ?>
-        <div class="alert alert-success" id="successAlert" role="alert">
-            <div class="alert-icon">✓</div>
-
-            <div class="alert-content">
-                <strong>Success</strong>
-                <span>
-                    <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?>
-                </span>
-            </div>
-
-            <button
-                type="button"
-                class="alert-close"
-                onclick="closeAlert('successAlert')"
-                aria-label="Close alert"
-            >
-                &times;
-            </button>
-
-            <div class="alert-progress"></div>
-        </div>
-    <?php endif; ?>
-
   
   <div class="login-card" role="main" aria-label="Login panel">
 
@@ -305,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <div class="input-group">
-        <input type="text" name="password" id="password" placeholder="Password"  autocomplete="current-password" />
+        <input type="password" name="password" id="password" placeholder="Password"  autocomplete="current-password" />
         <i class="fas fa-lock input-icon"></i>
       </div>
 

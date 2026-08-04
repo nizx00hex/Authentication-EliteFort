@@ -34,28 +34,15 @@ class User{
     public static function _login($email, $password)  {
 
         $conn = Database::getConnection();
-
-        //This query expect three posibilities username, email for login
-        // $query = "SELECT * FROM `auth` WHERE `username` = ':user' OR `email` = ':user'";
-        //This expecy only email.
         $query = "SELECT * FROM `Auth` WHERE `email` = :email LIMIT 1";
-
-        // var_dump(get_class($connection));
-        // var_dump($query);
-        
         $stmt = $conn->prepare($query);
-
         $stmt->execute([
             'email'    => trim($email)
         ]);
-
-        // $email = htmlspecialchars(strip_tags($email));
-        // $stmt->bindParam(':email', $email);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                // print_r($userInfo);
+
         
         if (!$user) {
-            // print_r($userInfo);
             throw new Exception("Enter the correct email or password.");
         }
         if (!password_verify($password, $user['password'])) {
