@@ -6,6 +6,8 @@ if (!isset($_SESSION['isLoggedIn']) || $_SESSION['isLoggedIn'] !== true) {
 }
 
 echo "Welcome back, Mr." . ucfirst(Session::get('username'));
+// echo "Welcome back, Mr." . ucfirst(Session::get('password'));
+
 echo "<br>";
 echo "Click to <a href='logout.php?logout'>Logout<a>";
 ?>

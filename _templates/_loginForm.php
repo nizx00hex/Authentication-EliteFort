@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             Session::set('user_id', $user['id']);
             Session::set('username', $user['username']);
+            Session::delete($user['password']);
             Session::set('isLoggedIn', true);
 
             header("Location: dashboard.php");
