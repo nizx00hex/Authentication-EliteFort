@@ -2,10 +2,10 @@
 class User{
     private $conn;
 
-    public $table = 'auth';
+    
     public $username;
     public $id = null;
-
+    public $table = 'auth';
 
 
     public function __construct($identifier)
@@ -116,47 +116,5 @@ class User{
         }
 
     }
-
-    public static function _verifySignup($username, $otp){
-        $conn = Database::getConnection();
-        
-        $query = "SELECT * FROM `Auth` WHERE `username` = ':username' LIMIT 1;";
-
-        $check = $conn->prepare($query);
-
-        $check->execute([
-            'username'  =>  $username
-        ]);
-
-        $user = $check->fetch(PDO::FETCH_ASSOC);
-        if($user){
-            if($row['otp'] == $otp){
-                return self::activate($username);
-            } else {
-                return false; 
-            }
-        } else {
-            return false;
-        }
-    }
-
-    public static function activate($username){
-        $conn = Database::getConnection();
-
-        try {
-            $query = "
-                UPDATE `Auth SET `is_verified` = 1, `otp` = NULL, `otp_expiry` = NUL WHERE `username` = :usernam LIMIT 1
-            ";            $check = $conn->prepare($query);
-
-            $check->execute([
-                'username'  =>  $username
-            ]);
-
-            return mysqli_query($db_conn, $query);
-        } catch (Exception $e) {
-            return $e->getMessage();
-        }
-    }
-
 }
 
