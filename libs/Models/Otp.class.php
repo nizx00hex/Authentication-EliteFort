@@ -46,12 +46,12 @@ class Otp {
     }
 
     //create and store in database for a new user
-    public static function _createForUser($username) {
+    public static function _createForUser($userId) {
         $conn = Database::getConnection();
 
-        $username = trim($username);
+        $userId = $userId;
 
-        $user = self::_getUser($username);
+        $user = self::_getUser($userId);
 
         if(!$user) {
             throw new Exception('User account was not found.');
@@ -69,14 +69,14 @@ class Otp {
         $otpHash = self::_hash($otp);
         $otpExpiry = self::_createExpiry();
 
-        $query = " UPDATE `Auth` SET `otp_hash` = :otp_hash, `otp_expiry` = :otp_expiry, `otp_attempts` = 0, `otp_last_sent` = NOW( WHERE `username` = :username AND `is_verified` =  LIMIT 1";
+        $query = "UPDATE `Auth` SET `otp_hash` = :otp_hash, `otp_expiry` = :otp_expiry, `otp_attempts` = 0, `otp_last_sent` = NOW() WHERE `id` = :id AND `is_verified` = 0 LIMIT 1";
 
         $stmt = $conn->prepare($query);
 
         $stmt->execute([
             'otp_hash' => $otpHash,
             'otp_expiry' => $otpExpiry,
-            'username' => $username
+            'id' => $userId
         ]);
 
         if($stmt->rowCount() !== 1) {
@@ -86,16 +86,16 @@ class Otp {
     }
 
     //verify the OTP entered by the user
-    public static function _verifyForUser($username, $otp) {
-        $username = trim($username);
+    public static function _verifyForUser($userId, $otp) {
+        $userId = $userId;
         $otp = trim($otp);
 
 
-        if (preg_match('/^\d{6}$/', $otp)) {
-            throw new Exception('Please enter a valid 6-digit OTP.');
-        }
+        // if (preg_match('/^\d{6}$/', $otp)) {
+        //     throw new Exception('Please enter a valid 6-digit OTP.');
+        // }
 
-        $user = self::_getUser($username);
+        $user = self::_getUser($userId);
 
         if(!$user) {
             throw new Exception('User account was not found');
@@ -110,24 +110,24 @@ class Otp {
         }
 
         if(self::_isExpired($user['otp_expiry'])) {
-            self::_clearForUser($username);
+            self::_clearForUser($userId);
 
             throw new Exception('OTP has expired, Please resend the OTP.');
         }
 
         if((int) $user['otp_attempts'] >= self::MAX_ATTEMPTS) {
-            self::_clearForUser($username);
+            self::_clearForUser($userId);
 
             throw new Exception('Too many incorrect attemtps, Please resend the OTP.');
         }
 
         if(!self::_verifyHash($otp, $user['otp_hash'])) {
-            self::_increaseAttempts($username);
+            self::_increaseAttempts($userId);
 
             $remainingAttempts = self::MAX_ATTEMPTS - ((int) $user['otp_attempts'] + 1);
 
             if($remainingAttempts <= 0) {
-                self::_clearForUser($username);
+                self::_clearForUser($userId);
 
                 throw new Exception('Too many incorrect attempts, Please resend the OTP.');
             }
@@ -142,7 +142,7 @@ class Otp {
     //
  
     //Activate account after successfull OTP verification.
-    private static function _activateUser($userId) {
+    public static function _activateUser($userId) {
         $conn = Database::getConnection();
 
         $query = "UPDATE `Auth` SET `is_verified` = 1, `otp_hash` = NULL, `otp_expiry` = NULL, `otp_attempts` = 0, `otp_last_sent` = NULL WHERE `id` = :id AND `is_verified` = 0 LIMIT 1";
@@ -165,32 +165,32 @@ class Otp {
     private static function _increaseAttempts($username) {
         $conn = Database::getConnection();
         
-        $query = "UPDATE `Auth` SET `otp_attempts` = `otp_attempts` + 1 WHERE `username` = :username LIMIT 1";
+        $query = "UPDATE `Auth` SET `otp_attempts` = `otp_attempts` + 1 WHERE `id` = :id LIMIT 1";
 
         $stmt = $conn->prepare($query);
         $stmt->execute([
-            'username' => $username
+            'id' => $userId
         ]);
     }
     
 
 
     //remove expired or invalidated OTP information
-    public static function _clearForUser($username) {
+    public static function _clearForUser($userId) {
         $conn = Database::getConnection();
 
-        $query = "UPDATE `Auth` SET `otp_hash` = NULL, `otp_expiry` = NULL, `otp_attempts` = 0 WHERE `username` = :username LIMIT 1";
+        $query = "UPDATE `Auth` SET `otp_hash` = NULL, `otp_expiry` = NULL, `otp_attempts` = 0 WHERE `id` = :id LIMIT 1";
 
         $stmt = $conn->prepare($query);
 
         $stmt->execute([
-            'username' => trim($username)
+            'id' => $userId
         ]);
     }
 
     //generate another OTP
-    public static function _resend($username) {
-        return self::_createForUser($username);
+    public static function _resend($userId) {
+        return self::_createForUser($userId);
     }
 
 
@@ -209,15 +209,15 @@ class Otp {
         return time() >= ($lastSentTimeStamp + self::RESEND_COOLDOWN_SECONDS);
     }
     //get user for OTP information
-    private static function _getUser($username) {
+    private static function _getUser($userId) {
         $conn = Database::getConnection();
 
-        $query = "SELECT `id`, `email`, `username`, `otp_hash`, `otp_expiry`, `otp_attempts`, `otp_last_sent`, `is_verified` FROM `Auth` WHERE `username` = :username LIMIT 1";
+        $query = "SELECT `id`, `email`, `username`, `otp_hash`, `otp_expiry`, `otp_attempts`, `otp_last_sent`, `is_verified` FROM `Auth` WHERE `id` = :id LIMIT 1";
 
         $stmt = $conn->prepare($query);
 
         $stmt->execute([
-            'username' => $username
+            'id' => $userId
         ]);
 
         return $stmt->fetch(PDO::FETCH_ASSOC);

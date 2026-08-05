@@ -1,4 +1,35 @@
-  <main class="signup-card" role="main" aria-label="Signup panel">
+<?php
+
+$success = '';
+$error = '';
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    try {
+        $user = User::_login($email, $password);
+        // var_dump($user);
+        // exit;
+
+        Session::set('user_id', $user['id']);
+        Session::set('username', $user['username']);
+        Session::delete($user['password']);
+        Session::set('isLoggedIn', true);
+
+        header("Location: dashboard.php");
+        exit;
+    } catch (Exception $e) {
+        $error = $e->getMessage();
+    }
+}
+
+
+?>
+
+
+<main class="signup-card" role="main" aria-label="Signup panel">
     <div class="corner-deco"></div>
 
     <header class="card-header">
@@ -6,69 +37,27 @@
       <p>Enter your information to get started</p>
     </header>
 
-    <form
-      class="signup-form"
-      id="signupForm"
-      action="#"
-      method="post"
-      novalidate
-    >
+    <form class="signup-form" id="signupForm" action="#" method="post" novalidate >
       <div class="input-group">
-        <input
-          type="text"
-          id="fullName"
-          name="full_name"
-          placeholder="Full name"
-          autocomplete="name"
-          minlength="2"
-          required
-        />
+        <input type="text" id="fullName" name="full_name" placeholder="Full name" autocomplete="name" minlength="2" required />
         <i class="fas fa-user input-icon"></i>
       </div>
 
       <div class="input-group">
-        <input
-          type="text"
-          id="username"
-          name="username"
-          placeholder="Username"
-          autocomplete="username"
-          minlength="3"
-          required
-        />
+        <input type="text" id="username" name="username" placeholder="Username" autocomplete="username" minlength="3" required />
         <i class="fas fa-at input-icon"></i>
       </div>
 
       <div class="input-group">
-        <input
-          type="email"
-          id="email"
-          name="email"
-          placeholder="Email address"
-          autocomplete="email"
-          required
-        />
+        <input type="email" id="email" name="email" placeholder="Email address" autocomplete="email" required />
         <i class="fas fa-envelope input-icon"></i>
       </div>
 
       <div class="input-group" id="passwordGroup">
-        <input
-          type="password"
-          id="password"
-          name="password"
-          placeholder="Create password"
-          autocomplete="new-password"
-          minlength="8"
-          required
-        />
+        <input type="password" id="password" name="password" placeholder="Create password" autocomplete="new-password" minlength="8" required />
         <i class="fas fa-lock input-icon"></i>
 
-        <button
-          type="button"
-          class="password-toggle"
-          data-target="password"
-          aria-label="Show password"
-        >
+        <button type="button" class="password-toggle" data-target="password" aria-label="Show password" >
           <i class="fas fa-eye"></i>
         </button>
       </div>
@@ -78,23 +67,10 @@
       </p>
 
       <div class="input-group" id="confirmPasswordGroup">
-        <input
-          type="password"
-          id="confirmPassword"
-          name="confirm_password"
-          placeholder="Confirm password"
-          autocomplete="new-password"
-          minlength="8"
-          required
-        />
+        <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirm password" autocomplete="new-password" minlength="8" required />
         <i class="fas fa-shield-alt input-icon"></i>
 
-        <button
-          type="button"
-          class="password-toggle"
-          data-target="confirmPassword"
-          aria-label="Show confirm password"
-        >
+        <button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show confirm password" >
           <i class="fas fa-eye"></i>
         </button>
       </div>
@@ -113,11 +89,7 @@
               data-modal-target="termsModal"
             >Terms of Service</button>
             <span> and </span>
-            <button
-              type="button"
-              class="policy-link"
-              data-modal-target="privacyModal"
-            >Privacy Policy</button><span>.</span>
+            <button type="button" class="policy-link" data-modal-target="privacyModal" >Privacy Policy</button><span>.</span>
           </div>
         </div>
       </div>

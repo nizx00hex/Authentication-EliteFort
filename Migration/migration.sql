@@ -46,4 +46,25 @@ CREATE TABLE `Session` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+
+CREATE TABLE audit_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NULL,
+    event VARCHAR(100) NOT NULL,
+    severity ENUM('INFO', 'WARNING', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'INFO',
+    status ENUM('SUCCESS', 'FAILED', 'BLOCKED') NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent VARCHAR(500) NULL,
+    request_method VARCHAR(10) NULL,
+    request_uri VARCHAR(1000) NULL,
+    session_id VARCHAR(128) NULL,
+    attempted_value VARCHAR(255) NULL,
+    failure_reason VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_user_id (user_id),
+    INDEX idx_ip_address (ip_address),
+    INDEX idx_event (event),
+    INDEX idx_created_at (created_at)
+);
 -- 2026-08-04 19:48:31

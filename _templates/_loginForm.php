@@ -8,25 +8,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if ($email === '' || $password === '') {
-        $error = "Email and password are required.";
-    } else {
+    try {
+        $user = User::_login($email, $password);
+        // var_dump($user);
+        // exit;
 
-        try {
-            $user = User::_login($email, $password);
-            // var_dump($user);
-            // exit;
+        Session::set('user_id', $user['id']);
+        Session::set('username', $user['username']);
+        Session::delete($user['password']);
+        Session::set('isLoggedIn', true);
 
-            Session::set('user_id', $user['id']);
-            Session::set('username', $user['username']);
-            Session::delete($user['password']);
-            Session::set('isLoggedIn', true);
-
-            header("Location: dashboard.php");
-            exit;
-        } catch (Exception $e) {
-            $error = $e->getMessage();
-        }
+        header("Location: dashboard.php");
+        exit;
+    } catch (Exception $e) {
+        $error = $e->getMessage();
     }
 }
 
