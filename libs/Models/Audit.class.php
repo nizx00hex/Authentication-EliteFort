@@ -8,7 +8,7 @@ class Audit {
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? null;
         $requestUri = $_SERVER['REQUEST_URI'] ?? null;
         $sessionId = session_status() === PHP_SESSION_ACTIVE ? session_id() : null;
-
+        // md5()
         $query = "INSERT INTO audit_logs (user_id, event, severity, status, ip_address, user_agent, request_method, request_uri, session_id, attempted_value, failure_reason) VALUES (:user_id, :event, :severity, :status, :ip_address, :user_agent, :request_method, :request_uri, :session_id, :attempted_value, :failure_reason)";
 
         $stmt = $conn->prepare($query);

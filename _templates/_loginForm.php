@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     try {
-        $user = User::_login($email, $password);
+        $user = Auth::_login($email, $password);
         // var_dump($user);
         // exit;
 

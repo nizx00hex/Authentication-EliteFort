@@ -1,5 +1,5 @@
 <?php
-class User{
+class Auth{
     private $conn;
 
     
@@ -34,6 +34,7 @@ class User{
     public static function _login($email, $password)  {
 
         if ($email === '' || $password === '') {
+            Audit::log(null, 'FIELD_REQUIRE', 'INFO', 'FAILED', $email, 'Enter the email and password');
             throw new Exception("Email and password are required.");
         }
 
@@ -47,12 +48,15 @@ class User{
 
 
         if (!$user) {
+            Audit::log(null, 'USER_NOT_FOUND', 'INFO', 'FAILED', $email, 'Incorrect email.');
             throw new Exception("Enter the correct email or password.");
         }
         if (!password_verify($password, $user['password'])) {
+            Audit::log(null, 'LOGIN_FAILED', 'WARNING', 'FAILED', $email, 'Incorrect password');
             throw new Exception("Enter the correct email or password.");
         }
 
+        Audit::log($user['id'], 'LOGIN_SUCCESS', 'INFO', 'SUCCESS', $email);
         // Session::delete($user['password']);
         return $user;
     }
@@ -63,6 +67,7 @@ class User{
             throw new Exception("All fields are required.");
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Audit::log(null, 'VALID_EMAIL_REQUIRED', 'INFO', 'FAILED', $email, 'Invalid email');
             throw new Exception("Invalid email address.");
         }
         if($password !== $cPassword) {
@@ -71,6 +76,7 @@ class User{
 
         $result = self::_exists($email, $username);
         if($result !== true) {
+            Audit::log(null, 'USER_ALREADY_EXISTS', 'INFO', 'FAILED', $email ." ". $username, 'Email or Username already exists.');
             throw new Exception("Username or Email already exists.");
         }
 
@@ -95,8 +101,10 @@ VALUES (:fullname, :username, :email, :password, now(), :ip, :agent);";
             'ip'        =>  $ip,
             'agent'     =>  $agent
         ]);
-        
-        return $conn->lastInsertId();
+        $userId = $conn->lastInsertId();
+
+        Audit::log(userId, 'SIGNUP_SUCCESS', 'INFO', 'SUCCESS', $username);
+        return $userId;
     }
 
     public static function _exists($email, $username) {
