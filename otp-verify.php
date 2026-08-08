@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/libs/init.php';
+require_once __DIR__ . '/libs/__init__.php';
 ?>
 
 <?= loadTemplates("_head")?>
@@ -7,6 +7,8 @@ require_once __DIR__ . '/libs/init.php';
 <body>
   <?= loadTemplates("_otpForm")?>
 
+
+</body>
   <script>
     (function() {
       const otpForm = document.getElementById('otpForm');
@@ -107,46 +109,46 @@ require_once __DIR__ . '/libs/init.php';
       }
 
       // ----- real‑time validation on input -----
-      otpInput.addEventListener('input', function(e) {
-        // allow only digits
-        this.value = this.value.replace(/\D/g, '').slice(0, 6);
-        validateOtp();
-      });
+      // otpInput.addEventListener('input', function(e) {
+      //   // allow only digits
+      //   this.value = this.value.replace(/\D/g, '').slice(0, 6);
+      //   validateOtp();
+      // });
 
-      // ----- form submit -----
-      otpForm.addEventListener('submit', function(event) {
-        event.preventDefault();
+      // // ----- form submit -----
+      // otpForm.addEventListener('submit', function(event) {
+      //   event.preventDefault();
 
-        const isValid = validateOtp();
+      //   const isValid = validateOtp();
 
-        if (!isValid) {
-          // If empty or invalid, show error
-          if (otpInput.value.trim().length === 0) {
-            otpGroup.classList.add('has-error');
-            otpMessage.className = 'field-message error';
-            otpMessage.textContent = 'Please enter the 6‑digit code.';
-          }
-          return;
-        }
+      //   if (!isValid) {
+      //     // If empty or invalid, show error
+      //     if (otpInput.value.trim().length === 0) {
+      //       otpGroup.classList.add('has-error');
+      //       otpMessage.className = 'field-message error';
+      //       otpMessage.textContent = 'Please enter the 6‑digit code.';
+      //     }
+      //     return;
+      //   }
 
-        // Simulate verification success
-        otpMessage.className = 'field-message success';
-        otpMessage.textContent = '✅ OTP verified successfully! Redirecting…';
-        otpGroup.classList.remove('has-error');
+        // // Simulate verification success
+        // otpMessage.className = 'field-message success';
+        // otpMessage.textContent = '✅ OTP verified successfully! Redirecting…';
+        // otpGroup.classList.remove('has-error');
 
-        // Disable button briefly to prevent double submit
-        const btn = this.querySelector('.verify-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<span>Verifying…</span><i class="fas fa-spinner fa-pulse"></i>';
+        // // Disable button briefly to prevent double submit
+        // const btn = this.querySelector('.verify-btn');
+        // btn.disabled = true;
+        // btn.innerHTML = '<span>Verifying…</span><i class="fas fa-spinner fa-pulse"></i>';
 
-        // Simulate async verification
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.innerHTML = '<span>Verify &amp; continue</span><i class="fas fa-arrow-right"></i>';
-          // In a real app, you would redirect or proceed.
-          alert('OTP verified (demo). Proceed to dashboard.');
-        }, 1200);
-      });
+        // // Simulate async verification
+        // setTimeout(() => {
+        //   btn.disabled = false;
+        //   btn.innerHTML = '<span>Verify &amp; continue</span><i class="fas fa-arrow-right"></i>';
+        //   // In a real app, you would redirect or proceed.
+        //   alert('OTP verified (demo). Proceed to dashboard.');
+        // }, 1200);
+      // });
 
       // ----- resend button -----
       resendBtn.addEventListener('click', handleResend);
@@ -169,6 +171,27 @@ require_once __DIR__ . '/libs/init.php';
       });
 
     })();
+      function closeAlert(alertId) {
+          const alertBox = document.getElementById(alertId);
+
+          if (!alertBox || alertBox.classList.contains("hide")) {
+              return;
+          }
+
+          alertBox.classList.add("hide");
+
+          setTimeout(() => {
+              alertBox.remove();
+          }, 300);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+          document.querySelectorAll(".alert").forEach(function (alertBox) {
+              setTimeout(function () {
+                  closeAlert(alertBox.id);
+              }, 5000);
+          });
+      });
+
   </script>
-</body>
 </html>

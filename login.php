@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/libs/init.php';
+require_once __DIR__ . '/libs/__init__.php';
 
 ?>
 <?= loadTemplates("_head")?>

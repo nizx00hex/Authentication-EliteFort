@@ -28,3 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+
+    public static function isVerified($email) {
+        $conn = Database::getConnection();
+
+        $user = self::_exists($email);
+
+        if($user['is_verified'] == 1) {
+            echo 'User verified!!';
+        } else {
+            echo 'User verified pending...';
+        }
+    }

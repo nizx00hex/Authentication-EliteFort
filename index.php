@@ -1,6 +1,6 @@
 <?php
+require_once __DIR__ . '/libs/__init__.php';
 
-require_once __DIR__ . '/libs/init.php';
 
 $conn = Database::getConnection();
 
@@ -104,37 +104,37 @@ $conn = Database::getConnection();
 
 
 
+//OTP Testing
+
+// $otp = Otp::_genarate();
+// echo "<br>";
+// $otpHash = Otp::_hash($otp);
+// echo "<br>";
+// $otpVerify = Otp::_verifyHash($otp, $otpHash);
+// echo "<br>";
+
+// $otpExpiry = Otp::_createExpiry();
 
 
-$otp = Otp::_genarate();
-echo "<br>";
-$otpHash = Otp::_hash($otp);
-echo "<br>";
-$otpVerify = Otp::_verifyHash($otp, $otpHash);
-echo "<br>";
+// echo $otp;
+// echo "<br>";
 
-$otpExpiry = Otp::_createExpiry();
+// echo $otpHash;
+// echo "<br>";
 
+// echo $otpVerify;
+// echo "<br>";
 
-echo $otp;
-echo "<br>";
+// echo $otpExpiry;
+// echo "<br>";
 
-echo $otpHash;
-echo "<br>";
+// if(Otp::_isExpired($otpExpiry)) {
+//     echo "Expired";
+// } else {
+//     echo "Not expired";
+// }
 
-echo $otpVerify;
-echo "<br>";
-
-echo $otpExpiry;
-echo "<br>";
-
-if(Otp::_isExpired($otpExpiry)) {
-    echo "Expired";
-} else {
-    echo "Not expired";
-}
-
-echo "<br>";
+// echo "<br>";
 // echo Otp::_createForUser("nisath");
 //528033
 // if(Otp::_verifyForUser("nisath", "528033")) {
@@ -148,3 +148,32 @@ echo "<br>";
 // } else {
 //     echo "Activation failed";
 // }
+
+
+
+
+
+
+
+
+
+
+//New Signup Testing
+// User::_signup("Hexona Teora", "hDfii", "h@dfsmail.com, ", "pasdfssf", 'pasdfssf');
+// $userid = Auth::_signup("Hexona Teora", "hexona", "hexona.teora@gmail.com", "pASs1WORD", 'pASs1WORD');
+// echo Otp::_createForUser($userid);
+
+// 361177
+
+// try {
+//     Otp::_verifyForUser(8,"361177");
+//     echo true;
+// } catch(Exception $e) {
+//     echo $e->getMessage();
+// }
+
+Auth::isVerified("nisath.hex@gmail.com");
+
+echo "<a href='login.php'>Login</a>";
+echo "<br>";
+echo "<a href='signup.php'>Signup</a>";

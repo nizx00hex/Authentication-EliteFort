@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/libs/init.php';
+require_once __DIR__ . '/libs/__init__.php';
 ?>
 
 <?= loadTemplates("_head")?>
@@ -15,7 +15,27 @@ require_once __DIR__ . '/libs/init.php';
     const policyModals = document.querySelectorAll('.policy-modal');
     let activeModal = null;
     let modalTrigger = null;
+    function closeAlert(alertId) {
+        const alertBox = document.getElementById(alertId);
 
+        if (!alertBox || alertBox.classList.contains("hide")) {
+            return;
+        }
+
+        alertBox.classList.add("hide");
+
+        setTimeout(() => {
+            alertBox.remove();
+        }, 300);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".alert").forEach(function (alertBox) {
+            setTimeout(function () {
+                closeAlert(alertBox.id);
+            }, 5000);
+        });
+    });
     function openPolicyModal(modal, trigger) {
       if (!modal) return;
 
@@ -90,31 +110,31 @@ require_once __DIR__ . '/libs/init.php';
       });
     });
 
-    function validatePasswordMatch() {
-      const password = passwordInput.value;
-      const confirmPassword = confirmPasswordInput.value;
+    // function validatePasswordMatch() {
+    //   const password = passwordInput.value;
+    //   const confirmPassword = confirmPasswordInput.value;
 
-      confirmPasswordGroup.classList.remove('has-error');
-      passwordMessage.className = 'field-message';
-      passwordMessage.textContent = '';
-      confirmPasswordInput.setCustomValidity('');
+    //   confirmPasswordGroup.classList.remove('has-error');
+    //   passwordMessage.className = 'field-message';
+    //   passwordMessage.textContent = '';
+    //   confirmPasswordInput.setCustomValidity('');
 
-      if (confirmPassword.length === 0) {
-        return false;
-      }
+    //   if (confirmPassword.length === 0) {
+    //     return false;
+    //   }
 
-      if (password !== confirmPassword) {
-        confirmPasswordGroup.classList.add('has-error');
-        passwordMessage.classList.add('error');
-        passwordMessage.textContent = 'Passwords do not match.';
-        confirmPasswordInput.setCustomValidity('Passwords do not match.');
-        return false;
-      }
+    //   if (password !== confirmPassword) {
+    //     confirmPasswordGroup.classList.add('has-error');
+    //     passwordMessage.classList.add('error');
+    //     passwordMessage.textContent = 'Passwords do not match.';
+    //     confirmPasswordInput.setCustomValidity('Passwords do not match.');
+    //     return false;
+    //   }
 
-      passwordMessage.classList.add('success');
-      passwordMessage.textContent = 'Passwords match.';
-      return true;
-    }
+    //   passwordMessage.classList.add('success');
+    //   passwordMessage.textContent = 'Passwords match.';
+    //   return true;
+    // }
 
     passwordInput.addEventListener('input', () => {
       if (confirmPasswordInput.value) {
@@ -133,5 +153,6 @@ require_once __DIR__ . '/libs/init.php';
       }
     });
   </script>
+  
 </body>
 </html>

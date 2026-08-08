@@ -1,30 +1,69 @@
 <?php
+if (Session::isLoggedIn()) {
+    header('Location: index.php');
+    exit;
+}
 
-$success = '';
+
+
 $error = '';
+$success = '';
 
+
+// ============================================
+// GET FLASH MESSAGE
+// ============================================
+
+
+$flash = Session::getFlash();
+
+if ($flash !== null) {
+
+    if ($flash['type'] === 'success') {
+        $success = $flash['message'];
+    }
+
+    if ($flash['type'] === 'error') {
+        $error = $flash['message'];
+    }
+}
+
+$email = Session::rememberedEmail();
+
+
+
+// ============================================
+// LOGIN
+// ============================================
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     try {
-        $user = Auth::_login($email, $password);
-        // var_dump($user);
-        // exit;
 
-        Session::set('user_id', $user['id']);
-        Session::set('username', $user['username']);
-        Session::delete($user['password']);
-        Session::set('isLoggedIn', true);
+        $user = Auth::_login(
+            $email,
+            $password
+        );
 
-        header("Location: dashboard.php");
+
+        // ==============================
+        // LOGIN USER INTO SESSION
+        // ==============================
+
+        Session::login($user);
+
+
+        header('Location: dashboard.php');
         exit;
+
     } catch (Exception $e) {
+
         $error = $e->getMessage();
     }
 }
-
 
 ?>
   
@@ -50,6 +89,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     <?php endif; ?>
   
+    <?php if (!empty($success)): ?>
+
+    <div
+        class="alert alert-success"
+        id="successAlert"
+        role="alert"
+    >
+        <div class="alert-icon">✓</div>
+
+        <div class="alert-content">
+            <strong>Success</strong>
+
+            <span>
+                <?= htmlspecialchars(
+                    $success,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
+            </span>
+        </div>
+
+        <button
+            type="button"
+            class="alert-close"
+            onclick="closeAlert('successAlert')"
+            aria-label="Close alert"
+        >
+            &times;
+        </button>
+        <div class="alert-progress"></div>
+    </div>
+    <?php endif; ?>
+
   
   
   <div class="login-card" role="main" aria-label="Login panel">

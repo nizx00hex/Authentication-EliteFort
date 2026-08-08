@@ -1,13 +1,13 @@
 <?php
 class Otp {
-    // private const OTP_LENGTH = 6;
+    private const OTP_LENGTH = 6;
     private const OTP_EXPIRY_MINUTES = 5;
-    private const MAX_ATTEMPTS = 5;
+    private const MAX_ATTEMPTS = 4;
     private const RESEND_COOLDOWN_SECONDS = 60;
 
 
     //genarate 6 digit OTP
-    public static function _genarate(){
+    public static function _generate(){
         return random_int(100000, 999999);
     }
 
@@ -49,23 +49,21 @@ class Otp {
     public static function _createForUser($userId) {
         $conn = Database::getConnection();
 
-        $userId = $userId;
-
         $user = self::_getUser($userId);
 
-        if(!$user) {
-            throw new Exception('User account was not found.');
-        }
+        // if(!$user) {
+        //     throw new Exception('User account was not found.');
+        // }
 
         if((int) $user['is_verified'] === 1) {
             throw new Exception("This account is already verified.");
         }
 
-        if(!self::_canResend($user['otp_last_sent'])) {
-            throw new Exception('Please wait before requesting another OTP');
-        }
+        // if(!self::_canResend($user['otp_last_sent'])) {
+        //     throw new Exception('Please wait before requesting another OTP');
+        // }
 
-        $otp = self::_genarate();
+        $otp = self::_generate();
         $otpHash = self::_hash($otp);
         $otpExpiry = self::_createExpiry();
 
@@ -91,12 +89,18 @@ class Otp {
         $otp = trim($otp);
 
 
-        // if (preg_match('/^\d{6}$/', $otp)) {
-        //     throw new Exception('Please enter a valid 6-digit OTP.');
-        // }
-
         $user = self::_getUser($userId);
 
+        // if(!is_numeric($otp)) {
+        //     throw new Exception('Enter a valid OTP');
+        // }
+
+        // Validate format
+        if (!self::isValidOtp($otp)) {
+            throw new Exception(
+                'OTP must be exactly 6 digits.'
+            );
+        }
         if(!$user) {
             throw new Exception('User account was not found');
         }
@@ -104,6 +108,9 @@ class Otp {
         if((int) $user['is_verified'] === 1) {
             throw new Exception('This account is already verified.');
         }
+        // if (!Otp::isValidOtp($otp)) {
+        //     throw new Exception("OTP must be exactly 6 digits.");
+        // }
 
         if(empty($user['otp_hash'])) {
             throw new Exception('No OTP is available, Please request a new OTP.');
@@ -120,6 +127,8 @@ class Otp {
 
             throw new Exception('Too many incorrect attemtps, Please resend the OTP.');
         }
+
+
 
         if(!self::_verifyHash($otp, $user['otp_hash'])) {
             self::_increaseAttempts($userId);
@@ -162,7 +171,7 @@ class Otp {
 
 
     //increase incorrect OTP attempts
-    private static function _increaseAttempts($username) {
+    private static function _increaseAttempts($userId) {
         $conn = Database::getConnection();
         
         $query = "UPDATE `Auth` SET `otp_attempts` = `otp_attempts` + 1 WHERE `id` = :id LIMIT 1";
@@ -172,7 +181,12 @@ class Otp {
             'id' => $userId
         ]);
     }
-    
+    public static function isValidOtp($otp) {
+        $otp = trim((string) $otp);
+
+        return preg_match('/^[0-9]{6}$/', $otp) === 1;
+    }
+        
 
 
     //remove expired or invalidated OTP information
@@ -222,4 +236,9 @@ class Otp {
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+    // public static function getExpiry($userId) {
+    //     $user = self::_getUser($userId);
+
+    //     return $user['otp_expiry'] ?? null;
+    // }
 }

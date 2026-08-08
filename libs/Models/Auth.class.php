@@ -38,8 +38,9 @@ class Auth{
         $email = trim($email);
 
 
+
         if ($email === '' || $password === '') {
-            Audit::log(null, 'FIELD_REQUIRE', 'INFO', 'FAILED', $email, 'Enter the email and password');
+            // Audit::log(null, 'FIELD_REQUIRE', 'INFO', 'FAILED', $email, 'Enter the email and password');
             throw new Exception('
             Email and password are required.
             ');
@@ -54,6 +55,8 @@ class Auth{
                 'Email address is too long.'
             );
         }
+
+
 
         if (strlen($password) > 255) {
             throw new InvalidArgumentException(
@@ -77,6 +80,11 @@ class Auth{
                 Enter the correct email or password.
             ');
         }
+
+        // if (!self::isVerified($email)) {
+        //     throw new Exception("Please verify your account first.");
+        // }
+
         if (!password_verify($password, $user['password'])) {
             Audit::log(null, 'LOGIN_FAILED', 'WARNING', 'FAILED', $email, 'Incorrect password');
             throw new Exception('
@@ -91,7 +99,7 @@ class Auth{
 
     public static function _signup($fullName, $username, $email, $password, $cPassword) {
         $conn = Database::getConnection();
-
+        //Field Required
         if (trim($fullName) === '' || trim($username) === '' || trim($email) === '' || trim($password) === '' || trim($cPassword) === '') {
             throw new Exception("All fields are required.");
         }
@@ -112,6 +120,7 @@ class Auth{
                 'Username can contain only letters, numbers and underscores.'
             );
         }
+        //Email validation
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Audit::log(null, 'VALID_EMAIL_REQUIRED', 'INFO', 'FAILED', $email, 'Invalid email');
             throw new Exception("Invalid email address.");
@@ -158,26 +167,11 @@ class Auth{
 
         $ip = $_SERVER['REMOTE_ADDR'];
         $agent = $_SERVER['HTTP_USER_AGENT'];
-        $pass = password_hash($password, PASSWORD_DEFAULT);
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
         $query = "INSERT INTO `Auth` (`fullname`, `username`, `email`, `password`, `register_date`, `register_ip`, `register_agent`)
 VALUES (:fullname, :username, :email, :password, now(), :ip, :agent);";
-    
-        // $stmt = $conn->prepare($query);
 
-        // $stmt->execute([
-        //     'fullname'  =>  $fullName,
-        //     'username'  =>  $username,
-        //     'email'     =>  $email,
-        //     'password'  =>  $pass,
-        //     'ip'        =>  $ip,
-        //     'agent'     =>  $agent
-        // ]);
-        // $userId = $conn->lastInsertId();
-
-        // Audit::log(userId, 'SIGNUP_SUCCESS', 'INFO', 'SUCCESS', $username);
-        // return $userId;
-    
        try {
             $stmt = $conn->prepare($query);
 
@@ -192,7 +186,7 @@ VALUES (:fullname, :username, :email, :password, now(), :ip, :agent);";
 
             $userId = $conn->lastInsertId();
 
-            Audit::log(userId, 'SIGNUP_SUCCESS', 'INFO', 'SUCCESS', $username);
+            Audit::log($userId, 'SIGNUP_SUCCESS', 'INFO', 'SUCCESS', $username);
             return $userId;
 
         } catch (PDOException $e) {
@@ -204,40 +198,30 @@ VALUES (:fullname, :username, :email, :password, now(), :ip, :agent);";
             );
         } 
     }
+    //verify the account 
+    public static function isVerified($email) {
+        $conn = Database::getConnection();
 
-    // public static function _exists($email, $username) {
-    //     $conn = Database::getConnection();
+        $query = "SELECT `is_verified` FROM `Auth` WHERE `email` = :email LIMIT 1";
 
-    //     $queryCheck = "SELECT id FROM `Auth` WHERE `email` = :email OR `username` = :username LIMIT 1";
+        $stmt = $conn->prepare($query);
 
+        $stmt->execute([
+            'email'    => $email,
+        ]);
 
-    //     $check = $conn->prepare($queryCheck);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$user) {
+            return false;
+        }
 
-    //     $check->execute([
-    //         'email'     =>  $email,
-    //         'username'  =>  $username
-    //     ]);
-
-    //     $row = $check->fetch();
-    //     // var_dump($row);
-    //     // exit();
-    //     if ($row != null) {
-    //         // throw new AuthException('An account already exists with this email address.');
-    //         return false;
-    //     } else {
-    //         return true;
-    //     }
-    // }
+        return (int) $user['is_verified'] === 1;
+    }
+    //is account exist?
     private static function _exists($email, $username) {
         $conn = Database::getConnection();
 
-        $query = "
-            SELECT `id`
-            FROM `Auth`
-            WHERE `email` = :email
-            OR `username` = :username
-            LIMIT 1
-        ";
+        $query = "SELECT `id` FROM `Auth` WHERE `email` = :email OR `username` = :username LIMIT 1";
 
         $stmt = $conn->prepare($query);
 
