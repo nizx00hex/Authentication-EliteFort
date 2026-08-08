@@ -1,20 +1,29 @@
 <?php
-require_once __DIR__ . '/libs/__init__.php';
-if (!isset($_SESSION['isLoggedIn']) || $_SESSION['isLoggedIn'] !== true) {
+require_once 'libs/__init__.php';
+
+if (!Session::isLoggedIn()) {
     header('Location: login.php');
     exit;
 }
 
-echo "Welcome back, Mr." . ucfirst(Session::get('username'));
-// echo "Welcome back, Mr." . ucfirst(Session::get('password'));
+
+$success = '';
+$error = '';
+
+$flash = Session::getFlash();
+
+if ($flash !== null) {
+
+    if ($flash['type'] === 'success') {
+        $success = $flash['message'];
+    }
+
+    if ($flash['type'] === 'error') {
+        $error = $flash['message'];
+    }
+}
 
 
-echo "<br>";
-$userId = Session::get('user_id');
-// $pass = Session::get('password');
-// $email = Session::get('email');
-
-// echo $pass;
-// echo $email;
-echo "Click to <a href='logout.php?logout&id={$userId}'>Logout</a>";
+echo $success;
+echo "<br> <a href='logout.php'>Logout</a>";
 ?>

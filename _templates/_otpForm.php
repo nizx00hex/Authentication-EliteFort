@@ -11,7 +11,7 @@ $email = Session::pendingEmail();
 // print_r(Session::get('pending_verification'));
 // echo "</pre>";
 echo Session::get('otp');
-$otpExpiryTimestamp = strtotime(Session::get('otpExpiry'));
+// $otpExpiryTimestamp = strtotime(Session::get('otpExpiry'));
 
 
 // No pending verification

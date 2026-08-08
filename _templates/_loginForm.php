@@ -1,6 +1,6 @@
 <?php
 if (Session::isLoggedIn()) {
-    header('Location: index.php');
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -38,23 +38,37 @@ $email = Session::rememberedEmail();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
     try {
+
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $remember = isset($_POST['remember']);
+        $csrfToken = $_POST['csrf_token'] ?? null;
+
+        if (!Session::verifyCsrf($csrfToken)) {
+            throw new Exception(
+                'Invalid request. Please refresh the page and try again.'
+            );
+        }
 
         $user = Auth::_login(
             $email,
             $password
         );
 
-
-        // ==============================
-        // LOGIN USER INTO SESSION
-        // ==============================
-
         Session::login($user);
 
+
+        if ($remember) {
+            Session::rememberEmail($email, 30);
+
+        } else {
+
+            Session::forgetRememberedEmail();
+        }
+
+        Session::flash('success', "Welcome back, $user[fullname] !");
 
         header('Location: dashboard.php');
         exit;
@@ -137,30 +151,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <p>Sign in to your account</p>
     </div>
 
-    <!-- form -->
-    <form class="login-form" action="login.php" method="post">
-      <div class="input-group">
-        
-        <input type="email" name="email" id="email" placeholder="Email address"  autocomplete="email" />
-        <i class="fas fa-envelope input-icon"></i>
-      </div>
+        <form
+            class="login-form"
+            action="login.php"
+            method="post"
+        >
 
-      <div class="input-group">
-        <input type="password" name="password" id="password" placeholder="Password"  autocomplete="current-password" />
-        <i class="fas fa-lock input-icon"></i>
-      </div>
+            <!-- CSRF -->
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(
+                    Session::csrfToken(),
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>"
+            >
 
-      <div class="form-options">
-        <label for="remember">
-          <input type="checkbox" id="remember" checked /> <span>Remember me</span>
-        </label>
-        <a href="#">Forgot password?</a>
-      </div>
 
-      <button type="submit" class="login-btn">
-        <span>Sign in</span> <i class="fas fa-arrow-right"></i>
-      </button>
-    </form>
+            <!-- EMAIL -->
+            <div class="input-group">
+
+                <input
+                    type="email"
+                    name="email"
+                    id="email"
+                    placeholder="Email address"
+                    autocomplete="email"
+                    value="<?= htmlspecialchars(
+                        $email,
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) ?>"
+                    required
+                >
+
+                <i class="fas fa-envelope input-icon"></i>
+
+            </div>
+
+
+            <!-- PASSWORD -->
+            <div class="input-group">
+
+                <input
+                    type="password"
+                    name="password"
+                    id="password"
+                    placeholder="Password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <i class="fas fa-lock input-icon"></i>
+
+            </div>
+
+
+            <div class="form-options">
+
+                <label for="remember">
+
+                    <input
+                        type="checkbox"
+                        name="remember"
+                        id="remember"
+                        value="1"
+                        <?= Session::rememberedEmail() !== ''
+                            ? 'checked'
+                            : '' ?>
+                    >
+
+                    <span>Remember me</span>
+
+                </label>
+
+                <a href="forgot-password.php">
+                    Forgot password?
+                </a>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="login-btn"
+            >
+
+                <span>Sign in</span>
+
+                <i class="fas fa-arrow-right"></i>
+
+            </button>
+
+        </form>
 
     <!-- divider -->
     <div class="divider">or continue with</div>
