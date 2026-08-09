@@ -5,8 +5,7 @@ declare(strict_types=1);
 final class Session
 {
     private const SESSION_NAME = 'EF_SESSION';
-    private const REMEMBER_EMAIL_COOKIE = 'elitefort_email';
-
+    private const REMEMBER_EMAIL_COOKIE = 'elitefort_user';
     private function __construct() {}
 
 
@@ -107,11 +106,18 @@ final class Session
 
         $_SESSION['auth'] = [
             'user_id' => (int) $user['id'],
+            // 'isLoggedIn' => true,
             'fullname' => (string) $user['fullname'],
             'username' => (string) $user['username'],
             'email' => (string) $user['email'],
             'login_time' => time(),
         ];
+    }
+
+    public static function getAuth(string $key, mixed $default = null) {
+        self::start();
+        
+        return $_SESSION['auth'][$key] ?? $default;
     }
 
 

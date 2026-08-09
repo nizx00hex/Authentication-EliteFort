@@ -31,31 +31,35 @@ class Auth{
         $this->id = (int) $user['id'];
     }
 
-    public static function _login($email, $password)  {
-        
+    public static function _login(string $user, string $password) {
         $conn = Database::getConnection();
 
-        $email = trim($email);
+        $user = trim($user);
 
-
-
-        if ($email === '' || $password === '') {
-            // Audit::log(null, 'FIELD_REQUIRE', 'INFO', 'FAILED', $email, 'Enter the email and password');
-            throw new Exception('
-            Email and password are required.
-            ');
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException('
-            Enter a valid email address.
-            ');
-        }
-        if (strlen($email) > 128) {
+        if ($user === '' || $password === '') {
             throw new InvalidArgumentException(
-                'Email address is too long.'
+                'Username/email and password are required.'
             );
         }
 
+        if (filter_var($user, FILTER_VALIDATE_EMAIL)) {
+            if (strlen($user) > 128) {
+                throw new InvalidArgumentException(
+                    'Email address is too long.'
+                );
+            }
+        } else {
+            if (strlen($user) < 4 || strlen($user) > 30) {
+                throw new InvalidArgumentException(
+                    'Username must be between 4 and 30 characters.'
+                );
+            }
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $user)) {
+                throw new InvalidArgumentException(
+                    'Username can contain only letters, numbers and underscores.'
+                );
+            }
+        }
 
 
         if (strlen($password) > 255) {
@@ -64,37 +68,142 @@ class Auth{
             );
         }
 
-        $query = "SELECT `id`, `fullname`, `username`, `email`, `password`, `is_verified` FROM `Auth` WHERE `email` = :email LIMIT 1";
-       
+        $query = "
+            SELECT
+                `id`,
+                `fullname`,
+                `username`,
+                `email`,
+                `password`,
+                `is_verified`
+            FROM `Auth`
+
+            WHERE `email` = :email
+            OR `username` = :username
+
+            LIMIT 1
+        ";
+
         $stmt = $conn->prepare($query);
-        
+
+        /*
+        * Same value goes into both placeholders.
+        *
+        * Example:
+        *
+        * $user = "nisath@gmail.com"
+        *
+        * checks:
+        * email = "nisath@gmail.com"
+        * OR
+        * username = "nisath@gmail.com"
+        *
+        *
+        * $user = "nisath"
+        *
+        * checks:
+        * email = "nisath"
+        * OR
+        * username = "nisath"
+        */
         $stmt->execute([
-            'email'    => $email
+            'email'    => $user,
+            'username' => $user
         ]);
-        
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user) {
-            Audit::log(null, 'USER_NOT_FOUND', 'INFO', 'FAILED', $email, 'Incorrect email.');
-            throw new Exception('
-                Enter the correct email or password.
-            ');
+        $userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 5. User doesn't exist
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$userInfo) {
+
+            Audit::log(
+                null,
+                'USER_NOT_FOUND',
+                'INFO',
+                'FAILED',
+                $user,
+                'Incorrect username/email.'
+            );
+
+            throw new Exception(
+                'Enter the correct username/email or password.'
+            );
         }
 
-        // if (!self::isVerified($email)) {
-        //     throw new Exception("Please verify your account first.");
-        // }
 
-        if (!password_verify($password, $user['password'])) {
-            Audit::log(null, 'LOGIN_FAILED', 'WARNING', 'FAILED', $email, 'Incorrect password');
-            throw new Exception('
-                Enter the correct email or password.
-            s');
+        /*
+        |--------------------------------------------------------------------------
+        | 6. Check verification
+        |--------------------------------------------------------------------------
+        */
+
+        if ((int) $userInfo['is_verified'] !== 1) {
+
+            Audit::log(
+                $userInfo['id'],
+                'ACCOUNT_NOT_VERIFIED',
+                'WARNING',
+                'FAILED',
+                $user,
+                'Account is not verified.'
+            );
+
+            throw new Exception(
+                'Please verify your account before logging in.'
+            );
         }
 
-        Audit::log($user['id'], 'LOGIN_SUCCESS', 'INFO', 'SUCCESS', $email);
-        unset($user['password']);
-        return $user;
+
+        /*
+        |--------------------------------------------------------------------------
+        | 7. Verify password
+        |--------------------------------------------------------------------------
+        */
+
+        if (!password_verify($password, $userInfo['password'])) {
+
+            Audit::log(
+                $userInfo['id'],
+                'LOGIN_FAILED',
+                'WARNING',
+                'FAILED',
+                $user,
+                'Incorrect password.'
+            );
+
+            throw new Exception(
+                'Enter the correct username/email or password.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | 8. Login successful
+        |--------------------------------------------------------------------------
+        */
+
+        Audit::log(
+            $userInfo['id'],
+            'LOGIN_SUCCESS',
+            'INFO',
+            'SUCCESS',
+            $user
+        );
+
+
+        /*
+        * Never return password hash outside this method.
+        */
+        unset($userInfo['password']);
+
+        return $userInfo;
     }
 
     public static function _signup($fullName, $username, $email, $password, $cPassword) {

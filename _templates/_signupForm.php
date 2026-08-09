@@ -1,4 +1,9 @@
 <?php
+if (Session::isLoggedIn()) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 
 $error = '';
 $success = '';

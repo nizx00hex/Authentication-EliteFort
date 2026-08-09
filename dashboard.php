@@ -1,4 +1,5 @@
 <?php
+
 require_once 'libs/__init__.php';
 
 if (!Session::isLoggedIn()) {
@@ -6,24 +7,8 @@ if (!Session::isLoggedIn()) {
     exit;
 }
 
+$username = Session::getAuth('fullname'); 
 
-$success = '';
-$error = '';
+echo 'Welcome back, ' . htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
 
-$flash = Session::getFlash();
-
-if ($flash !== null) {
-
-    if ($flash['type'] === 'success') {
-        $success = $flash['message'];
-    }
-
-    if ($flash['type'] === 'error') {
-        $error = $flash['message'];
-    }
-}
-
-
-echo $success;
-echo "<br> <a href='logout.php'>Logout</a>";
-?>
+echo "<br><a href='logout.php'>Logout</a>";

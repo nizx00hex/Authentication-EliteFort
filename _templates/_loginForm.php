@@ -28,7 +28,7 @@ if ($flash !== null) {
     }
 }
 
-$email = Session::rememberedEmail();
+$user = Session::rememberedEmail();
 
 
 
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
 
-        $email = trim($_POST['email'] ?? '');
+        $user = trim($_POST['user'] ?? '');
         $password = $_POST['password'] ?? '';
 
         $remember = isset($_POST['remember']);
@@ -52,23 +52,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
 
-        $user = Auth::_login(
-            $email,
+        $userInfo = Auth::_login(
+            $user,
             $password
         );
 
-        Session::login($user);
+        Session::login($userInfo);
 
 
         if ($remember) {
-            Session::rememberEmail($email, 30);
+            Session::rememberEmail($user, 30);
 
         } else {
 
             Session::forgetRememberedEmail();
         }
 
-        Session::flash('success', "Welcome back, $user[fullname] !");
+        Session::flash('success', "Welcome back, $userInfo[fullname] !");
 
         header('Location: dashboard.php');
         exit;
@@ -169,24 +169,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             >
 
 
-            <!-- EMAIL -->
+            <!-- USERNAME OR EMAIL -->
             <div class="input-group">
 
                 <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    placeholder="Email address"
-                    autocomplete="email"
+                    type="text"
+                    name="user"
+                    id="user"
+                    placeholder="Username or email"
+                    autocomplete="username"
                     value="<?= htmlspecialchars(
-                        $email,
+                        $user ?? '',
                         ENT_QUOTES,
                         'UTF-8'
                     ) ?>"
-                    required
+                    
                 >
 
-                <i class="fas fa-envelope input-icon"></i>
+                <i class="fas fa-user input-icon"></i>
 
             </div>
 
@@ -200,7 +200,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     id="password"
                     placeholder="Password"
                     autocomplete="current-password"
-                    required
                 >
 
                 <i class="fas fa-lock input-icon"></i>
