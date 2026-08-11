@@ -1,0 +1,17 @@
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Composer dependencies
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
