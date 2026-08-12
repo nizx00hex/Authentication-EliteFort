@@ -190,6 +190,7 @@ class Mailer
     /**
      * Send OTP for email verification.
      */
+    //Checking Done
     public static function sendOtp(string $email, string $otp): bool
     {
         $otpSafe = htmlspecialchars($otp, ENT_QUOTES, 'UTF-8');
@@ -218,6 +219,7 @@ class Mailer
     /**
      * Send password reset link.
      */
+    //Checking Done
     public static function sendPasswordReset(string $email, string $resetLink): bool
     {
         $safeLink = htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8');
@@ -252,6 +254,7 @@ class Mailer
     /**
      * Send notification after password is changed.
      */
+    //Checking Done
     public static function sendPasswordChanged(string $email): bool
     {
         $subject = 'Your Password Was Changed';
@@ -277,6 +280,7 @@ class Mailer
     /**
      * Send notification when a login occurs.
      */
+    //Checking Done
     public static function sendLoginAlert(string $email): bool
     {
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
@@ -313,6 +317,7 @@ class Mailer
     /**
      * Send notification when account is locked.
      */
+    //Checking Done
     public static function sendAccountLocked(string $email, int $minutes): bool
     {
         $minutes = max(1, $minutes);
@@ -340,6 +345,7 @@ class Mailer
     /**
      * Send notification when account is unlocked.
      */
+    //Checking Done
     public static function sendAccountUnlocked(string $email): bool
     {
         $subject = 'Your Account Has Been Unlocked';
@@ -366,6 +372,7 @@ class Mailer
      * Send security notification when account email address is changed.
      * Prefer sending this notification to the OLD email address.
      */
+    //Checking Done
     public static function sendEmailChanged(string $email, string $newEmail): bool
     {
         $safeNewEmail = htmlspecialchars($newEmail, ENT_QUOTES, 'UTF-8');

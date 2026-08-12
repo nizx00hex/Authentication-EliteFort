@@ -2,481 +2,661 @@
 
 declare(strict_types=1);
 
-final class Session
+class Session
 {
+    /* =========================================================
+       CONFIGURATION CONSTANTS
+    ========================================================= */
+
+    /**
+     * Custom session cookie name
+     */
     private const SESSION_NAME = 'EF_SESSION';
-    private const REMEMBER_EMAIL_COOKIE = 'elitefort_user';
-    private function __construct() {}
+
+    /**
+     * User can stay inactive for 30 minutes (1800 seconds)
+     */
+    private const IDLE_TIMEOUT = 1800;
+
+    /**
+     * Maximum session lifetime = 8 hours (28800 seconds)
+     */
+    private const ABSOLUTE_TIMEOUT = 28800;
+
+    /**
+     * SameSite cookie attribute
+     */
+    private const SAME_SITE = 'Lax';
+
+    /**
+     * Required user fields for authentication
+     */
+    private const REQUIRED_USER_FIELDS = ['id', 'fullname', 'username', 'email'];
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Start Session
-    |--------------------------------------------------------------------------
-    */
-    public static function start() {
+    /* =========================================================
+       SESSION START
+    ========================================================= */
+
+    /**
+     * Start the PHP session with security configuration.
+     */
+    public static function start(): void
+    {
+        // Don't start twice
         if (session_status() === PHP_SESSION_ACTIVE) {
             return;
         }
 
+        // Session configuration must happen before session_start()
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
+        ini_set('session.use_trans_sid', '0');
 
+        // Give our PHP session cookie a custom name (EF_SESSION instead of PHPSESSID)
         session_name(self::SESSION_NAME);
 
+        // Session cookie configuration
+        // lifetime = 0 means this is a normal browser-session cookie
+        // Persistent login is handled separately by RememberMe.class.php
         session_set_cookie_params([
             'lifetime' => 0,
             'path' => '/',
-            'domain' => '',
             'secure' => self::isHttps(),
             'httponly' => true,
-            'samesite' => 'Lax',
+            'samesite' => self::SAME_SITE,
         ]);
+
+        // Session must start before output
+        if (headers_sent()) {
+            throw new RuntimeException('Cannot start session after headers have been sent.');
+        }
 
         session_start();
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Basic Session Set
-    |--------------------------------------------------------------------------
-    */
-    public static function set(string $key, mixed $value): void
-    {
-        self::start();
+    /* =========================================================
+       LOGIN / LOGOUT
+    ========================================================= */
 
-        $_SESSION[$key] = $value;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Basic Session Get
-    |--------------------------------------------------------------------------
-    */
-    public static function get(string $key): mixed
-    {
-        self::start();
-
-        return $_SESSION[$key] ?? null;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check Session Key
-    |--------------------------------------------------------------------------
-    */
-    public static function has(string $key): bool
-    {
-        self::start();
-
-        return isset($_SESSION[$key]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Remove Session Key
-    |--------------------------------------------------------------------------
-    */
-    public static function remove(string $key): void
-    {
-        self::start();
-
-        unset($_SESSION[$key]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Login User
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Authenticate a user and create a session.
+     */
     public static function login(array $user): void
     {
         self::start();
 
-        /*
-         * Prevent session fixation.
-         * Create a new session ID after successful login.
-         */
-        session_regenerate_id(true);
+        // Make sure required user fields exist
+        foreach (self::REQUIRED_USER_FIELDS as $field) {
+            if (!array_key_exists($field, $user)) {
+                throw new InvalidArgumentException("Missing user field: {$field}");
+            }
+        }
 
+        // If somehow another authenticated session already exists, revoke it
+        if (self::isAuthenticated()) {
+            self::revokeCurrent();
+        }
+
+        // Prevent session fixation - login gets a NEW session ID
+        self::regenerate();
+
+        $now = time();
+
+        // Create PHP authenticated session
         $_SESSION['auth'] = [
             'user_id' => (int) $user['id'],
-            // 'isLoggedIn' => true,
             'fullname' => (string) $user['fullname'],
             'username' => (string) $user['username'],
             'email' => (string) $user['email'],
-            'login_time' => time(),
+            'login_time' => $now,
+            'last_activity' => $now,
         ];
+
+        // Also register this login inside user_sessions table
+        try {
+            self::createSessionRecord((int) $user['id']);
+        } catch (Throwable $e) {
+            // If DB session record cannot be created, do not leave user authenticated
+            self::destroy();
+            throw $e;
+        }
     }
 
-    public static function getAuth(string $key, mixed $default = null) {
-        self::start();
-        
-        return $_SESSION['auth'][$key] ?? $default;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check User Logged In
-    |--------------------------------------------------------------------------
-    */
-    public static function isLoggedIn(): bool
+    /**
+     * Logout the current user and destroy the session.
+     */
+    public static function logout(): void
     {
         self::start();
 
-        return isset($_SESSION['auth']['user_id']);
+        // Revoke current DB session first
+        if (self::isAuthenticated()) {
+            try {
+                self::revokeCurrent();
+            } catch (Throwable $e) {
+                // Logout should still destroy the browser/PHP session even if DB operation fails
+                error_log('Session revoke error: ' . $e->getMessage());
+            }
+        }
+
+        // Destroy PHP session
+        self::destroy();
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Get Logged In User
-    |--------------------------------------------------------------------------
-    */
+    /* =========================================================
+       AUTHENTICATION CHECKS
+    ========================================================= */
+
+    /**
+     * Check if the current user is authenticated.
+     */
+    public static function isAuthenticated(): bool
+    {
+        self::start();
+
+        return isset($_SESSION['auth']['user_id']) && is_numeric($_SESSION['auth']['user_id']);
+    }
+
+    /**
+     * Validate the current session against database record.
+     */
+    public static function validate(): bool
+    {
+        self::start();
+
+        // No PHP login session
+        if (!self::isAuthenticated()) {
+            return false;
+        }
+
+        // Find current session in database
+        $record = self::getSessionRecord();
+
+        // PHP session exists but database session does not - fail closed
+        if ($record === null) {
+            self::destroy();
+            return false;
+        }
+
+        // Session manually revoked?
+        if ($record['revoked_at'] !== null) {
+            self::destroy();
+            return false;
+        }
+
+        $now = time();
+
+        // Check absolute session expiration
+        $expiresAt = strtotime((string) $record['expires_at']);
+        if ($expiresAt === false || $now >= $expiresAt) {
+            self::revokeCurrent();
+            self::destroy();
+            return false;
+        }
+
+        // Check idle timeout
+        $lastActivity = strtotime((string) $record['last_activity']);
+        if ($lastActivity === false) {
+            self::revokeCurrent();
+            self::destroy();
+            return false;
+        }
+
+        if (($now - $lastActivity) > self::IDLE_TIMEOUT) {
+            self::revokeCurrent();
+            self::destroy();
+            return false;
+        }
+
+        // Session is valid - update activity timestamp
+        self::updateActivity();
+        return true;
+    }
+
+
+    /* =========================================================
+       USER DATA GETTERS
+    ========================================================= */
+
+    /**
+     * Get the current authenticated user data.
+     */
     public static function user(): ?array
     {
         self::start();
 
-        if (
-            isset($_SESSION['auth']) &&
-            is_array($_SESSION['auth'])
-        ) {
-            return $_SESSION['auth'];
+        if (!self::isAuthenticated()) {
+            return null;
         }
 
-        return null;
+        return $_SESSION['auth'];
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Get Logged In User ID
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Get the current authenticated user ID.
+     */
     public static function userId(): ?int
     {
-        $user = self::user();
+        self::start();
 
-        if ($user === null) {
+        if (!self::isAuthenticated()) {
             return null;
         }
 
-        return (int) $user['user_id'];
+        return (int) $_SESSION['auth']['user_id'];
+    }
+
+    /**
+     * Get the current authenticated username.
+     */
+    public static function username(): ?string
+    {
+        self::start();
+
+        return isset($_SESSION['auth']['username'])
+            ? (string) $_SESSION['auth']['username']
+            : null;
+    }
+
+    /**
+     * Get the current authenticated user email.
+     */
+    public static function email(): ?string
+    {
+        self::start();
+
+        return isset($_SESSION['auth']['email'])
+            ? (string) $_SESSION['auth']['email']
+            : null;
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Require Login
-    |--------------------------------------------------------------------------
-    | Use this on protected pages.
-    |--------------------------------------------------------------------------
-    */
-    public static function requireLogin(string $loginPage = 'login.php'): void {
-        if (!self::isLoggedIn()) {
+    /* =========================================================
+       SESSION MANAGEMENT
+    ========================================================= */
 
-            self::flash(
-                'error',
-                'Please login to access this page.'
-            );
+    /**
+     * Regenerate session ID to prevent fixation.
+     */
+    public static function regenerate(): void
+    {
+        self::start();
 
-            header('Location: ' . $loginPage);
-            exit;
+        // If this is already an authenticated database-backed session, remember its current hash
+        $authenticated = self::isAuthenticated();
+        $oldHash = null;
+        $userId = null;
+
+        if ($authenticated) {
+            $oldHash = self::sessionHash();
+            $userId = self::userId();
+        }
+
+        // Generate new PHP session ID and delete old server-side PHP session
+        if (!session_regenerate_id(true)) {
+            throw new RuntimeException('Unable to regenerate session ID.');
+        }
+
+        // If an authenticated DB session existed, update its hash to match the new PHP session ID
+        if ($authenticated && $oldHash !== null && $userId !== null) {
+            $conn = Database::getConnection();
+
+            $stmt = $conn->prepare('
+                UPDATE user_sessions
+                SET session_id_hash = :new_hash
+                WHERE user_id = :user_id
+                AND session_id_hash = :old_hash
+                AND revoked_at IS NULL
+                LIMIT 1
+            ');
+
+            $stmt->execute([
+                'new_hash' => self::sessionHash(),
+                'user_id' => $userId,
+                'old_hash' => $oldHash,
+            ]);
         }
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Set Pending OTP Verification
-    |--------------------------------------------------------------------------
-    | Used after signup.
-    |--------------------------------------------------------------------------
-    */
-    public static function setPendingVerification(int $userId, string $email): void {
+    /**
+     * Destroy the entire session.
+     */
+    public static function destroy(): void
+    {
         self::start();
 
-        $_SESSION['pending_verification'] = [
+        // Remove all PHP session data
+        $_SESSION = [];
+
+        // Delete browser EF_SESSION cookie
+        self::deleteSessionCookie();
+
+        // Destroy PHP server-side session
+        session_destroy();
+    }
+
+    /**
+     * Revoke the current database session.
+     */
+    public static function revokeCurrent(): void
+    {
+        self::start();
+
+        // No session ID available
+        if (session_id() === '') {
+            return;
+        }
+
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            UPDATE user_sessions
+            SET revoked_at = NOW()
+            WHERE session_id_hash = :session_hash
+            AND revoked_at IS NULL
+            LIMIT 1
+        ');
+
+        $stmt->execute([
+            'session_hash' => self::sessionHash(),
+        ]);
+    }
+
+    /**
+     * Revoke all sessions for a specific user.
+     */
+    public static function revokeAll(int $userId): void
+    {
+        if ($userId <= 0) {
+            throw new InvalidArgumentException('Invalid user ID.');
+        }
+
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            UPDATE user_sessions
+            SET revoked_at = NOW()
+            WHERE user_id = :user_id
+            AND revoked_at IS NULL
+        ');
+
+        $stmt->execute([
             'user_id' => $userId,
-            'email' => $email,
-            'created_at' => time(),
-        ];
+        ]);
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Get Pending Verification
-    |--------------------------------------------------------------------------
-    */
-    public static function pendingVerification(): ?array
+    /**
+     * Update the session activity timestamp.
+     */
+    public static function updateActivity(): void
     {
         self::start();
 
-        if (
-            isset($_SESSION['pending_verification']) &&
-            is_array($_SESSION['pending_verification'])
-        ) {
-            return $_SESSION['pending_verification'];
+        if (!self::isAuthenticated()) {
+            return;
         }
 
-        return null;
+        $userId = self::userId();
+        if ($userId === null) {
+            return;
+        }
+
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            UPDATE user_sessions
+            SET last_activity = NOW()
+            WHERE user_id = :user_id
+            AND session_id_hash = :session_hash
+            AND revoked_at IS NULL
+            AND expires_at > NOW()
+            LIMIT 1
+        ');
+
+        $stmt->execute([
+            'user_id' => $userId,
+            'session_hash' => self::sessionHash(),
+        ]);
+
+        // Keep PHP session timestamp updated too
+        $_SESSION['auth']['last_activity'] = time();
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Get Pending User ID
-    |--------------------------------------------------------------------------
-    */
-    public static function pendingUserId(): ?int
-    {
-        $pending = self::pendingVerification();
+    /* =========================================================
+       GENERIC SESSION METHODS
+    ========================================================= */
 
-        if ($pending === null) {
-            return null;
-        }
-
-        return (int) $pending['user_id'];
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Get Pending Email
-    |--------------------------------------------------------------------------
-    */
-    public static function pendingEmail(): ?string
-    {
-        $pending = self::pendingVerification();
-
-        if ($pending === null) {
-            return null;
-        }
-
-        return (string) $pending['email'];
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Clear Pending Verification
-    |--------------------------------------------------------------------------
-    | Use after successful OTP verification.
-    |--------------------------------------------------------------------------
-    */
-    public static function clearPendingVerification(): void
+    /**
+     * Set a session value.
+     */
+    public static function set(string $key, mixed $value): void
     {
         self::start();
+        $_SESSION[$key] = $value;
+    }
 
-        unset($_SESSION['pending_verification']);
+    /**
+     * Get a session value.
+     */
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        self::start();
+        return $_SESSION[$key] ?? $default;
+    }
+
+    /**
+     * Check if a session key exists.
+     */
+    public static function has(string $key): bool
+    {
+        self::start();
+        return array_key_exists($key, $_SESSION);
+    }
+
+    /**
+     * Remove a session key.
+     */
+    public static function remove(string $key): void
+    {
+        self::start();
+        unset($_SESSION[$key]);
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Set Flash Message
-    |--------------------------------------------------------------------------
-    */
-    public static function flash(string $type, string $message ): void {
-        self::start();
+    /* =========================================================
+       FLASH MESSAGES
+    ========================================================= */
 
-        $_SESSION['flash'] = [
+    /**
+     * Store a flash message for one request.
+     */
+    public static function flash(string $type, string $message): void
+    {
+        self::start();
+        $_SESSION['_flash'] = [
             'type' => $type,
             'message' => $message,
         ];
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Get Flash Message
-    |--------------------------------------------------------------------------
-    | Message is deleted immediately after reading.
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Get and clear the flash message.
+     */
     public static function getFlash(): ?array
     {
         self::start();
 
-        $flash = $_SESSION['flash'] ?? null;
+        if (!isset($_SESSION['_flash'])) {
+            return null;
+        }
 
-        unset($_SESSION['flash']);
-
-        return is_array($flash)
-            ? $flash
-            : null;
+        $flash = $_SESSION['_flash'];
+        unset($_SESSION['_flash']);
+        return $flash;
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Generate CSRF Token
-    |--------------------------------------------------------------------------
-    */
-    public static function csrfToken(): string
+    /* =========================================================
+       DATABASE SESSION RECORDS
+    ========================================================= */
+
+    /**
+     * Create a database session record.
+     */
+    private static function createSessionRecord(int $userId): void
+    {
+        if ($userId <= 0) {
+            throw new InvalidArgumentException('Invalid user ID.');
+        }
+
+        self::start();
+
+        // Never store raw session_id() in database - store SHA-256 hash
+        $sessionHash = self::sessionHash();
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        $agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        // Database columns have length limits
+        if ($ip !== null) {
+            $ip = substr((string) $ip, 0, 45);
+        }
+
+        if ($agent !== null) {
+            $agent = substr((string) $agent, 0, 500);
+        }
+
+        $expiresAt = date('Y-m-d H:i:s', time() + self::ABSOLUTE_TIMEOUT);
+
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            INSERT INTO user_sessions
+            (
+                user_id,
+                session_id_hash,
+                ip_address,
+                user_agent,
+                last_activity,
+                expires_at
+            )
+            VALUES
+            (
+                :user_id,
+                :session_hash,
+                :ip_address,
+                :user_agent,
+                NOW(),
+                :expires_at
+            )
+        ');
+
+        $stmt->execute([
+            'user_id' => $userId,
+            'session_hash' => $sessionHash,
+            'ip_address' => $ip,
+            'user_agent' => $agent,
+            'expires_at' => $expiresAt,
+        ]);
+    }
+
+    /**
+     * Get the current database session record.
+     */
+    private static function getSessionRecord(): ?array
     {
         self::start();
 
-        if (empty($_SESSION['csrf_token'])) {
-
-            $_SESSION['csrf_token'] = bin2hex(
-                random_bytes(32)
-            );
+        $userId = self::userId();
+        if ($userId === null) {
+            return null;
         }
 
-        return (string) $_SESSION['csrf_token'];
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            SELECT
+                id,
+                user_id,
+                session_id_hash,
+                ip_address,
+                user_agent,
+                created_at,
+                last_activity,
+                expires_at,
+                revoked_at
+            FROM user_sessions
+            WHERE user_id = :user_id
+            AND session_id_hash = :session_hash
+            LIMIT 1
+        ');
+
+        $stmt->execute([
+            'user_id' => $userId,
+            'session_hash' => self::sessionHash(),
+        ]);
+
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $record ?: null;
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Verify CSRF Token
-    |--------------------------------------------------------------------------
-    */
-    public static function verifyCsrf(?string $token): bool
+    /* =========================================================
+       HELPER METHODS
+    ========================================================= */
+
+    /**
+     * Hash the current session ID using SHA-256.
+     */
+    private static function sessionHash(): string
     {
         self::start();
 
-        if (
-            $token === null ||
-            empty($_SESSION['csrf_token'])
-        ) {
-            return false;
+        $id = session_id();
+        if ($id === '') {
+            throw new RuntimeException('No active session ID.');
         }
 
-        return hash_equals(
-            (string) $_SESSION['csrf_token'],
-            $token
-        );
+        return hash('sha256', $id);
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Remember Email
-    |--------------------------------------------------------------------------
-    | This does NOT keep the user logged in.
-    | It only remembers the login email.
-    |--------------------------------------------------------------------------
-    */
-    public static function rememberEmail(
-        string $email,
-        int $days = 30
-    ): void {
-        setcookie(
-            self::REMEMBER_EMAIL_COOKIE,
-            $email,
-            [
-                'expires' => time() + ($days * 86400),
-                'path' => '/',
-                'domain' => '',
-                'secure' => self::isHttps(),
-                'httponly' => true,
-                'samesite' => 'Lax',
-            ]
-        );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Get Remembered Email
-    |--------------------------------------------------------------------------
-    */
-    public static function rememberedEmail(): string
+    /**
+     * Delete the session cookie.
+     */
+    private static function deleteSessionCookie(): void
     {
-        if (!isset($_COOKIE[self::REMEMBER_EMAIL_COOKIE])) {
-            return '';
+        // PHP session is not using cookies
+        if (!ini_get('session.use_cookies')) {
+            return;
         }
 
-        return trim(
-            (string) $_COOKIE[self::REMEMBER_EMAIL_COOKIE]
-        );
-    }
+        $params = session_get_cookie_params();
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Forget Remembered Email
-    |--------------------------------------------------------------------------
-    */
-    public static function forgetRememberedEmail(): void
-    {
         setcookie(
-            self::REMEMBER_EMAIL_COOKIE,
+            session_name(),
             '',
             [
-                'expires' => time() - 3600,
-                'path' => '/',
-                'domain' => '',
-                'secure' => self::isHttps(),
-                'httponly' => true,
-                'samesite' => 'Lax',
+                'expires' => time() - 42000,
+                'path' => $params['path'] ?: '/',
+                'domain' => $params['domain'] ?? '',
+                'secure' => (bool) ($params['secure'] ?? false),
+                'httponly' => (bool) ($params['httponly'] ?? true),
+                'samesite' => $params['samesite'] ?? self::SAME_SITE,
             ]
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Logout User
-    |--------------------------------------------------------------------------
-    */
-    public static function logout(): void
-    {
-        self::start();
-
-        /*
-         * Remove all session variables.
-         */
-        $_SESSION = [];
-
-
-        /*
-         * Delete session cookie from browser.
-         */
-        if (ini_get('session.use_cookies')) {
-
-            $params = session_get_cookie_params();
-
-            setcookie(
-                session_name(),
-                '',
-                [
-                    'expires' => time() - 3600,
-                    'path' => $params['path'],
-                    'domain' => $params['domain'],
-                    'secure' => $params['secure'],
-                    'httponly' => $params['httponly'],
-                    'samesite' => 'Lax',
-                ]
-            );
-        }
-
-
-        /*
-         * Delete server-side session.
-         */
-        session_destroy();
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check HTTPS
-    |--------------------------------------------------------------------------
-    */
+    /**
+     * Check if the connection is using HTTPS.
+     */
     private static function isHttps(): bool
     {
         return isset($_SERVER['HTTPS'])
             && $_SERVER['HTTPS'] !== ''
-            && $_SERVER['HTTPS'] !== 'off';
+            && strtolower((string) $_SERVER['HTTPS']) !== 'off';
     }
 }
