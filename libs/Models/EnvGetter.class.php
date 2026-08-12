@@ -1,6 +1,6 @@
 <?php
 class Env {
-    private static function env(string $key, ?string $default = null): string {
+    public static function env(string $key, ?string $default = null): string {
 
         $value = $_ENV[$key] ?? null;
 

@@ -2,14 +2,14 @@
 
 
 spl_autoload_register(function($class) {    
-    require_once 'Models/' . $class . '.class.php';
+    require_once 'libs/Models/' . $class . '.class.php';
 });
-Session::start();
+// Session::start();
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// ini_set('display_errors', '1');
-// ini_set('display_startup_errors', '1');
-// error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 
 function loadTemplates($name) {
     // print(__DIR__ . "/../_templates/$name.php");
