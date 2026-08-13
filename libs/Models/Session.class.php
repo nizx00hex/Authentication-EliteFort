@@ -62,7 +62,7 @@ class Session
         session_set_cookie_params([
             'lifetime' => 0,
             'path' => '/',
-            'secure' => self::isHttps(),
+            'secure' => RememberMe::isHttps(),
             'httponly' => true,
             'samesite' => self::SAME_SITE,
         ]);
@@ -653,10 +653,10 @@ class Session
     /**
      * Check if the connection is using HTTPS.
      */
-    private static function isHttps(): bool
-    {
-        return isset($_SERVER['HTTPS'])
-            && $_SERVER['HTTPS'] !== ''
-            && strtolower((string) $_SERVER['HTTPS']) !== 'off';
-    }
+    // private static function isHttps(): bool
+    // {
+    //     return isset($_SERVER['HTTPS'])
+    //         && $_SERVER['HTTPS'] !== ''
+    //         && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+    // }
 }

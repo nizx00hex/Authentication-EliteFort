@@ -39,13 +39,7 @@ class Auth
     /**
      * Register a new user account.
      */
-    public static function signup(
-        string $fullname,
-        string $username,
-        string $email,
-        string $password,
-        string $confirmPassword
-    ): int {
+    public static function signup(string $fullname, string $username, string $email, string $password, string $confirmPassword): int {
         // Clean input
         $fullname = trim($fullname);
         $username = trim($username);
