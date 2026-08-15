@@ -102,12 +102,10 @@ $success = $success ?? '';
                 Back to sign in
             </a>
         </div>
+        
+        <!-- FOOTER -->
+        <?= loadTemplates('_footer'); ?>
 
-        <div class="footer">
-            <span>EliteFort</span>
-            <span class="footer-dot"></span>
-            <span>Authentication</span>
-        </div>
 
     </main>
 

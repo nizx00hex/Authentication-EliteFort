@@ -99,11 +99,8 @@ $email = $email ?? 'nisath.sec@gmail.com';
         </div>
 
         <!-- FOOTER -->
-        <div class="footer">
-            <span>EliteFort</span>
-            <span class="footer-dot"></span>
-            <span>Authentication</span>
-        </div>
+        <?= loadTemplates('_footer'); ?>
+
 
     </main>
 
