@@ -23,3 +23,27 @@ $dotenv = Dotenv\Dotenv::createImmutable(
 );
 
 $dotenv->safeLoad();
+
+
+function _getTitle($file) {
+    $_file = basename($file, ".php");
+    if($_file === 'login') {
+        echo "<title>Sign In | EliteFort</title>";
+    } else if($_file === 'signup'){
+        echo "<title>Create Account | EliteFort</title>";
+    } else if ($_file === 'otp-verify') {
+        echo "<title>Verify Email | EliteFort</title>";
+    } else if ($_file === 'forgot-password') {
+        echo "<title>Forgot Password | EliteFort</title>";
+    } else if ($_file === 'reset-password') {
+        echo "<title>Reset Password | EliteFort</title>";
+    } else if ($_file === 'session-expired') {
+        echo "<title>Session Expired | EliteFort</title>";
+    } else if($_file === 'account-locked') {
+        echo "<title>Account Locked | EliteFort</title>";
+    } else {
+        echo "<title>EliteFort</title>";
+    }
+}
+
+

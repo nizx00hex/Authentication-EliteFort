@@ -1,6 +1,6 @@
 <?php
 
-require_once 'EnvGetter.class.php';
+// require_once 'EnvGetter.class.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
@@ -169,6 +169,7 @@ class Mailer
     /**
      * Build common email footer.
      */
+    
     private static function buildFooter(): string
     {
         return '

@@ -562,7 +562,7 @@ class Auth
     /**
      * Insert new user into database.
      */
-    private static function insertUser(
+    public static function insertUser(
         string $fullname,
         string $username,
         string $email,

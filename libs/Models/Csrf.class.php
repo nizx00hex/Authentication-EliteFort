@@ -69,7 +69,7 @@ class Csrf
     /**
      * Verify a submitted CSRF token against the stored token.
      */
-    public static function verify(?string $token): bool
+    public static function verify(?string $token): bool 
     {
         Session::start();
 
