@@ -7,7 +7,7 @@ $success = $success ?? '';
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
-        $userId = Session::get('user_id');
+        $userId = Session::get('pending_verification_user_id');
         $otpDigits = $_POST['otp'] ?? [];
 
         $otp = implode('', $otpDigits);

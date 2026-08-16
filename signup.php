@@ -7,17 +7,19 @@ include "_core/__init__.php";
 // }
 
 $error   = $error ?? '';
-$success = $success ?? '';
+// $success = $success ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $fullName = trim($_POST['full_name'] ?? '');
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $cPassword = $_POST['confirm_password'] ?? '';
 
     try {
+        Csrf::protect();    
+
+        $fullName = trim($_POST['full_name'] ?? '');
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $cPassword = $_POST['confirm_password'] ?? '';
 
         $userId = Auth::signup(
             $fullName,
@@ -26,11 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password,
             $cPassword
         );
-        Session::set('user_id', $userId);
-        Otp::createForUser($userId);
-  
-
-        header('Location: otp-verify.php');
+        Otp::createForUser(
+            $userId
+        );
+        Session::set(
+            'pending_verification_user_id',
+            $userId
+        );
+        header(
+            'Location: otp-verify.php'
+        );
         exit;
 
     } catch (Exception $e) {
@@ -81,7 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- FORM -->
         <form method="POST" id="signupForm">
-
+    
+            <?=Csrf::input() ?>
+  
             <!-- FULL NAME -->
             <div class="field">
                 <div class="field-top">

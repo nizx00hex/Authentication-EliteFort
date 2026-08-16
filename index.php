@@ -15,7 +15,7 @@ require_once '_core/__init__.php';
 // }
 //    echo basename($_SERVER['PHP_SELF'], ".php");
 
-Session::flash('success', 'OTP Verified. You can login now.');
-echo "Session set";
+// Session::flash('success', 'OTP Verified. You can login now.');
+// echo "Session set";
 echo "<br>";
-echo '<a href="dashboard.php">Dashboard</a>';
+echo '<a href="pages.php">Dashboard</a>';
