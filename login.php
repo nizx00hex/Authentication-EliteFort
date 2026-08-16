@@ -1,9 +1,48 @@
 <?php
 include "_core/__init__.php";
 
+if(Session::isAuthenticated()) {
+    header("Location: index.php");
+    exit;
+}
 
-$error   = $error ?? 'fgsdfsdf';
-$success = $success ?? '';
+
+
+// $error   = $error ?? 'fgsdfsdf';
+// $success = Session::getFlash();
+
+$flash = Session::getFlash();
+
+if ($flash !== null) {
+
+    if ($flash['type'] === 'success') {
+        $success = $flash['message'];
+    }
+
+    if ($flash['type'] === 'error') {
+        $error = $flash['message'];
+    }
+}
+
+// echo $success;
+
+// Csrf::protect();
+
+// if($_SERVER['REUQEST_METHOD'] === 'POST') {
+//     try {
+//         $user = trim($_POST['user'] ?? '');
+//         $password = $_POST['password'] ?? '';
+//         $remember = isset($_POST['remember']);
+//         $_token = $_POST['csrf_token'] ?? null;
+
+//         if(!Csrf::verify($_token)){
+//             throw new Exception("Invalid request. Please refresh the page and try again.");
+//         }
+
+//     } catch () {
+
+//     }
+// }
 ?>
 
 <?= loadTemplates('_head'); ?>
@@ -45,6 +84,8 @@ $success = $success ?? '';
 
         <!-- LOGIN FORM -->
         <form method="POST" id="loginForm">
+
+            <?=Csrf::input() ?>
 
             <!-- EMAIL / USERNAME -->
             <div class="field">

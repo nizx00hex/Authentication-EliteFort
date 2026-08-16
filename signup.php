@@ -1,8 +1,42 @@
 <?php
 include "_core/__init__.php";
 
+// if(Session::isAuthenticated()) {
+//     header("Location: index.php");
+//     exit;
+// }
+
 $error   = $error ?? '';
 $success = $success ?? '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $fullName = trim($_POST['full_name'] ?? '');
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $cPassword = $_POST['confirm_password'] ?? '';
+
+    try {
+
+        $userId = Auth::signup(
+            $fullName,
+            $username,
+            $email,
+            $password,
+            $cPassword
+        );
+        Session::set('user_id', $userId);
+        Otp::createForUser($userId);
+  
+
+        header('Location: otp-verify.php');
+        exit;
+
+    } catch (Exception $e) {
+        $error = $e->getMessage();
+    }
+}
 ?>
 
 <?= loadTemplates('_head'); ?>

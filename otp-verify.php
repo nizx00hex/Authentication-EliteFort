@@ -3,8 +3,26 @@ include "_core/__init__.php";
 
 $error   = $error ?? '';
 $success = $success ?? '';
-?>
 
+try {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        
+        $userId = Session::get('user_id');
+        $otpDigits = $_POST['otp'] ?? [];
+
+        $otp = implode('', $otpDigits);
+
+        // echo $otp;
+        Otp::verify($userId, $otp);
+        Session::flash('success', 'OTP Verified. You can login now.');
+
+        header('Location: login.php');
+        exit;
+    }
+} catch (Exception $e) {
+    $error = $e->getMessage();
+}
+?>
 <?= loadTemplates('_head'); ?>
 
 
@@ -62,12 +80,12 @@ $success = $success ?? '';
             <input type="hidden" name="otp" id="otpValue">
 
             <div class="otp-group" id="otpGroup">
-                <input type="text" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" aria-label="OTP digit 1">
-                <input type="text" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 2">
-                <input type="text" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 3">
-                <input type="text" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 4">
-                <input type="text" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 5">
-                <input type="text" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 6">
+                <input type="text" name="otp[]" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" aria-label="OTP digit 1">
+                <input type="text" name="otp[]" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 2">
+                <input type="text" name="otp[]" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 3">
+                <input type="text" name="otp[]" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 4">
+                <input type="text" name="otp[]" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 5">
+                <input type="text" name="otp[]" class="otp-input" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="OTP digit 6">
             </div>
 
             <!-- TIMER -->
