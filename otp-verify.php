@@ -4,23 +4,57 @@ include "_core/__init__.php";
 $error   = $error ?? '';
 $success = $success ?? '';
 
-try {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$userId = Session::get('pending_verification_user_id', 0);
+// echo $userId;
+if($userId <= 0) {
+    header('Location: signup.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
-        $userId = Session::get('pending_verification_user_id');
-        $otpDigits = $_POST['otp'] ?? [];
+    try {
 
-        $otp = implode('', $otpDigits);
+        Csrf::protect();
+        $action  = $_POST['action'] ?? '';
 
-        // echo $otp;
-        Otp::verify($userId, $otp);
-        Session::flash('success', 'OTP Verified. You can login now.');
+        if($action === 'resend') {
+            // $error = "in resend";
+            Otp::resend($userId);
+            $success = 'A new OTP has been send to your email.';
 
-        header('Location: login.php');
-        exit;
+        } else if ($action === 'verify') {
+            // $error = "in verify";
+            $otpDigits = $_POST['otp'] ?? [];
+
+            if(!is_array($otpDigits)) {
+                throw new Exception("Invalid OTP.");
+            }
+
+            $otp = implode('', $otpDigits);
+            Otp::verify($userId, $otp);
+
+            Session::remove('pending_verification_user_id');
+            Session::flash('success', 'Email verified successfully. You can login now.');
+
+            header('Location: login.php');
+            exit;
+        } else {
+            throw new Exception('Invalid action');
+        }
+
+
+
+        // if($action === 'resend') {
+
+        //     // Otp::resend($userId);
+        //     // $success = 'A new OTP has been send to your email.';
+        // }
+
+
+    } catch (Exception $e) {
+        $error = $e->getMessage();
     }
-} catch (Exception $e) {
-    $error = $e->getMessage();
 }
 ?>
 <?= loadTemplates('_head'); ?>
@@ -76,8 +110,9 @@ try {
 
             <label class="otp-label">Verification code</label>
 
-            <!-- This is the field PHP receives: $_POST['otp'] -->
-            <input type="hidden" name="otp" id="otpValue">
+            <?=Csrf::input() ?>
+            
+            <input type="hidden" name="action" value="verify">
 
             <div class="otp-group" id="otpGroup">
                 <input type="text" name="otp[]" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" aria-label="OTP digit 1">
@@ -104,12 +139,17 @@ try {
         </form>
 
         <!-- RESEND -->
-        <div class="resend">
-            Didn't receive the code?
-            <button type="button" class="resend-button" id="resendButton" disabled>
-                Resend in 60s
-            </button>
-        </div>
+        <form method="POST">
+            <?=Csrf::input() ?>
+            <input type="hidden" name="action" value="resend">
+
+            <div class="resend">
+                Didn't receive the code?
+                <button type="submit" class="resend-button" id="resendButton">
+                    Resend in 60s
+                </button>
+            </div>
+        </form>
 
         <!-- BACK -->
         <div class="back-login">
@@ -237,10 +277,10 @@ try {
             resendButton.textContent = `Resend in ${resendSeconds}s`;
         }, 1000);
 
-        resendButton.addEventListener('click', () => {
+       // resendButton.addEventListener('click', () => {
             // Point this to your PHP resend action
-            window.location.href = 'otp-verify.php?action=resend';
-        });
+         //   window.location.href = 'otp-verify.php?action=resend';
+        //});
 
         /* =========================================================
            TOAST

@@ -19,3 +19,8 @@ require_once '_core/__init__.php';
 // echo "Session set";
 echo "<br>";
 echo '<a href="pages.php">Dashboard</a>';
+
+?>
+<!-- <pre>
+teora:$2y$12$VPJzuYIn.gHjNrQtrcbvPeCCK2C0wt/gLMeR16I7ygel8KMKXCm1y<br>naruto:$2y$12$jPaUO877i.JzpewAwIAc/u8N40lEMJ1NfOKDWhl6/idX00qWM7fsC<br>nisath:$2y$12$.J7WuUDQFAN/5NDl9ls3dOzeNilxlLuz/2mQzouvPgwoJGVflyEgC
+</pre> -->
