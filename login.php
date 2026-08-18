@@ -1,15 +1,37 @@
 <?php
+
+declare(strict_types=1);
+
 include "_core/__init__.php";
 
-if(Session::isAuthenticated()) {
-    header("Location: index.php");
-    exit;
+$error = null;
+$success = null;
+
+
+if (Session::isAuthenticated()) {
+
+    if (Session::validate()) {
+        header("Location: index.php");
+        exit;
+    }
 }
 
+if (!Session::isAuthenticated() && RememberMe::exists()) {
+    try {
 
+        $rememberedUser = RememberMe::authenticate();
 
-// $error   = $error ?? 'fgsdfsdf';
-// $success = Session::getFlash();
+        if ($rememberedUser !== null) {
+            AuditLog::rememberUsed((int) $rememberedUser['id']);
+            header("Location: index.php");
+            exit;
+        }
+
+    } catch (Throwable $e) {
+        $error = error_log( 'Remember Me authentication failed: ' . $e->getMessage());
+    }
+}
+
 
 $flash = Session::getFlash();
 
@@ -24,25 +46,40 @@ if ($flash !== null) {
     }
 }
 
-// echo $success;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-// Csrf::protect();
+    try {
 
-// if($_SERVER['REUQEST_METHOD'] === 'POST') {
-//     try {
-//         $user = trim($_POST['user'] ?? '');
-//         $password = $_POST['password'] ?? '';
-//         $remember = isset($_POST['remember']);
-//         $_token = $_POST['csrf_token'] ?? null;
+        Csrf::protect();
 
-//         if(!Csrf::verify($_token)){
-//             throw new Exception("Invalid request. Please refresh the page and try again.");
-//         }
+        $identifier = trim($_POST['user'] ?? '');
 
-//     } catch () {
+        $password = $_POST['password'] ?? '';
 
-//     }
-// }
+        $user = Auth::login($identifier, $password);
+
+        Session::login($user);
+
+        $userId = (int) $user['id'];
+
+        // AuditLog::loginSuccess($userId);
+        // AuditLog::sessionCreated($userId);
+
+        if (!empty($_POST['remember'])) {
+            RememberMe::create($userId);
+            // AuditLog::rememberCreated($userId);
+        }
+
+        Csrf::regenerate();
+        
+        header("Location: index.php");
+        exit;
+
+    } catch (Throwable $e) {
+
+        $error = $e->getMessage();
+    }
+}
 ?>
 
 <?= loadTemplates('_head'); ?>

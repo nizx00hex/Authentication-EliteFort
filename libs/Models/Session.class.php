@@ -424,6 +424,23 @@ class Session
         // Keep PHP session timestamp updated too
         $_SESSION['auth']['last_activity'] = time();
     }
+ 
+ 
+    public static function validateSessionUser($id) {
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            SELECT id
+            FROM Auth
+            WHERE id = :id
+            LIMIT 1
+        ');
+        $stmt->execute(['id' => $id]);
+
+        if($stmt->fetch(PDO::FETCH_ASSOC)) {
+            return true;
+        }
+    }
 
 
     /* =========================================================
@@ -498,6 +515,7 @@ class Session
         unset($_SESSION['_flash']);
         return $flash;
     }
+
 
 
     /* =========================================================

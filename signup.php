@@ -1,10 +1,10 @@
 <?php
 include "_core/__init__.php";
 
-// if(Session::isAuthenticated()) {
-//     header("Location: index.php");
-//     exit;
-// }
+if(Session::isAuthenticated()) {
+    header("Location: index.php");
+    exit;
+}
 
 $error   = $error ?? '';
 // $success = $success ?? '';

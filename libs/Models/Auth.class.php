@@ -106,7 +106,11 @@ class Auth
         // Account must be email verified
         // Check this AFTER credential verification to prevent account enumeration
         if ((int) $user['is_verified'] !== 1) {
-            throw new RuntimeException('Your account is not verified.');
+            Session::flash('error', 'Your account is not verified.');
+            // Session::set('pending_verification_user_id', $user['id']);
+            header('Location: otp-verify.php');
+            exit;
+            // throw new RuntimeException('Your account is not verified.');
         }
 
         // Upgrade password hash if PHP's default hashing settings have changed

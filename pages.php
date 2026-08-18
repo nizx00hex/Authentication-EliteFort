@@ -1,8 +1,12 @@
 <?php
 require_once '_core/__init__.php';
 
-// $success = Session::getFlash();
-// print_r($success);
+if(!Session::isAuthenticated()) {
+    header("Location: login.php");
+    exit;
+}
+
+
 
 
 $flash = Session::getFlash();

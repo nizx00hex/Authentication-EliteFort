@@ -1,9 +1,24 @@
 <?php
 require_once '_core/__init__.php';
-// if(!Session::isAuthenticated()) {
-//     header("Location: login.php");
-//     exit;
-// }
+
+
+if(!Session::isAuthenticated()) {
+    header("Location: login.php");
+    exit;
+}
+
+// print_r($_SESSION);
+
+$userId = $_SESSION['auth']['user_id'];
+// echo $userId;
+
+if (!Session::validateSessionUser($userId)) {
+    Session::logout();
+
+    header('Location: login.php');
+    exit;
+}
+
 
 
 // $conn = Database::getConnection();
@@ -18,7 +33,10 @@ require_once '_core/__init__.php';
 // Session::flash('success', 'OTP Verified. You can login now.');
 // echo "Session set";
 echo "<br>";
-echo '<a href="pages.php">Dashboard</a>';
+echo '<a href="pages.php">Pages</a>';
+echo "<br>";
+
+echo '<a href="logout.php">Logout</a>';
 
 ?>
 <!-- <pre>

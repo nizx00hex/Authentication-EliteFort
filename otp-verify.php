@@ -11,6 +11,21 @@ if($userId <= 0) {
     exit;
 }
 
+
+$flash = Session::getFlash();
+
+if ($flash !== null) {
+
+    if ($flash['type'] === 'success') {
+        $success = $flash['message'];
+    }
+
+    if ($flash['type'] === 'error') {
+        $error = $flash['message'];
+    }
+}
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
     try {
@@ -56,6 +71,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = $e->getMessage();
     }
 }
+
+
+// $error = null;
+
+// $userId = (int) Session::get(
+//     'pending_verification_user_id',
+//     0
+// );
+
+// if ($userId <= 0) {
+//     header('Location: signup.php');
+//     exit;
+// }
+
+// $user = Auth::findById($userId);
+
+// if ($user === null) {
+//     Session::remove(
+//         'pending_verification_user_id'
+//     );
+//     header('Location: signup.php');
+//     exit;
+// }
+// //Already verified.
+// if ((int) $user['is_verified'] === 1) {
+//     Session::remove(
+//         'pending_verification_user_id'
+//     );
+
+//     header('Location: login.php');
+//     exit;
+// }
+
+// if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+//     try {
+//         Csrf::protect();
+
+//         $digits = $_POST['otp'] ?? [];
+        
+//         if (!is_array($digits)) {
+//             throw new RuntimeException(
+//                 'Invalid OTP format.'
+//             );
+//         }
+        
+//         $otp = implode('', $digits);
+        
+//         Otp::verify($userId, $otp);
+//         // AuditLog::otpSuccess($userId);
+//         Session::remove(
+//             'pending_verification_user_id'
+//         );
+        
+//         Session::flash(
+//             'success', 
+//             'Email verified successfully. You can login now.'
+//         );
+
+//         Csrf::regenerate();
+        
+//         header('Location: login.php');
+//         exit;
+
+//     } catch (Throwable $e) {
+
+//         // try {
+//         //     AuditLog::otpFailure($userId);
+//         // } catch (Throwable $auditError) {
+//         //     error_log($auditError->getMessage());
+//         // }
+
+//         $error = $e->getMessage();
+//     }
+// }
 ?>
 <?= loadTemplates('_head'); ?>
 

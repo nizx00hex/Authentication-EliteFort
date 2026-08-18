@@ -1,5 +1,5 @@
 <?php
-
+date_default_timezone_set('Asia/Colombo');
 
 spl_autoload_register(function($class) {    
     require_once 'libs/Models/' . $class . '.class.php';
