@@ -189,7 +189,7 @@ class Session
         $userId = self::userId();
         $sessionHash = self::sessionHash();
 
-        if (!self::authorize($userId, $sessionHash)) {
+        if (!self::validateSessionIdentity($userId, $sessionHash)) {
             self::destroy();
             return false;
         }
@@ -550,7 +550,7 @@ class Session
     //     }
     // }
 
-    private static function authorize(int $userId, string $sessionHash): bool {
+    private static function validateSessionIdentity(int $userId, string $sessionHash): bool {
         $session = self::sessionExists($userId, $sessionHash);
 
         if ($session === null) {
