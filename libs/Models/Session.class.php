@@ -172,6 +172,11 @@ class Session
             return false;
         }
 
+        if(!Session::validateSessionUser()) {
+            self::destroy();
+            return false;
+        }
+
         // Find current session in database
         $record = self::getSessionRecord();
 
@@ -426,22 +431,6 @@ class Session
     }
  
  
-    public static function validateSessionUser($id) {
-        $conn = Database::getConnection();
-
-        $stmt = $conn->prepare('
-            SELECT id
-            FROM Auth
-            WHERE id = :id
-            LIMIT 1
-        ');
-        $stmt->execute(['id' => $id]);
-
-        if($stmt->fetch(PDO::FETCH_ASSOC)) {
-            return true;
-        }
-    }
-
 
     /* =========================================================
        GENERIC SESSION METHODS
@@ -515,6 +504,54 @@ class Session
         unset($_SESSION['_flash']);
         return $flash;
     }
+
+    private static function validateSessionUser() {
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            SELECT id
+            FROM Auth
+            WHERE id = :id
+            LIMIT 1
+        ');
+        $stmt->execute(['id' => $_SESSION['auth']['user_id']]);
+
+        return $stmt->fetchColumn();
+    }
+
+
+    // public static function authorize($token){
+    //     try {
+    //         $token = new UserSession($token);
+    //         if (isset($_SERVER['REMOTE_ADDR']) and isset($_SERVER["HTTP_USER_AGENT"])) {
+    //             if ($session->isValid() and $session->isActive()) {
+    //                 if ($_SERVER['REMOTE_ADDR'] == $session->getIP()) {
+    //                     if ($_SERVER['HTTP_USER_AGENT'] == $session->getUserAgent()) {
+    //                         if ($session->getFingerprint() == $_COOKIE['fingerprint']) { //TODO: This is always true, fix it
+    //                             Session::$user = $session->getUser();
+    //                             return $session;
+    //                         } else {
+    //                             throw new Exception("FingerPrint doesn't match");
+    //                         }
+    //                     } else {
+    //                         throw new Exception("User agent does't match");
+    //                     }
+    //                 } else {
+    //                     throw new Exception("IP does't match");
+    //                 }
+    //             } else {
+    //                 $session->removeSession();
+    //                 throw new Exception("Invalid session");
+    //             }
+    //         } else {
+    //             throw new Exception("IP and User_agent is null");
+    //         }
+    //     } catch (Exception $e) {
+    //         throw new Exception("Something is wrong");
+    //     }
+    // }
+
+
 
 
 
