@@ -1,0 +1,7 @@
+Cookie hijacking, Available
+    for prevent from this 
+        add inside validate();  
+            compare sessiond id hash
+                    user agent
+                    ip
+                    if correct only can work else not

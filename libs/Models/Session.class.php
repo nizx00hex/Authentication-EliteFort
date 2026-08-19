@@ -172,7 +172,24 @@ class Session
             return false;
         }
 
-        if(!Session::validateSessionUser()) {
+        if(!self::validateSessionUser()) {
+            self::destroy();
+            return false;
+        }
+
+        // $u_id = self::userId();
+        // $sessionHash = self::get('session_hash_id');
+        
+        // if(!self::authorize($u_id, $sessionHash)) {
+        //     self::destroy();
+        //     return false;
+        // }
+
+
+        $userId = self::userId();
+        $sessionHash = self::sessionHash();
+
+        if (!self::authorize($userId, $sessionHash)) {
             self::destroy();
             return false;
         }
@@ -520,37 +537,87 @@ class Session
     }
 
 
-    // public static function authorize($token){
-    //     try {
-    //         $token = new UserSession($token);
-    //         if (isset($_SERVER['REMOTE_ADDR']) and isset($_SERVER["HTTP_USER_AGENT"])) {
-    //             if ($session->isValid() and $session->isActive()) {
-    //                 if ($_SERVER['REMOTE_ADDR'] == $session->getIP()) {
-    //                     if ($_SERVER['HTTP_USER_AGENT'] == $session->getUserAgent()) {
-    //                         if ($session->getFingerprint() == $_COOKIE['fingerprint']) { //TODO: This is always true, fix it
-    //                             Session::$user = $session->getUser();
-    //                             return $session;
-    //                         } else {
-    //                             throw new Exception("FingerPrint doesn't match");
-    //                         }
-    //                     } else {
-    //                         throw new Exception("User agent does't match");
-    //                     }
-    //                 } else {
-    //                     throw new Exception("IP does't match");
+    // public static function authorize($u_id, $sessionHash){
+    //     $session = self::sessionExists($u_id, $sessionHash);
+    //     if ($session) {
+    //         if ($session['session_id_hash'] === $sessionHash) {
+    //             if ($session['user_agent'] === ($_SERVER['HTTP_USER_AGENT'] ?? null)) {
+    //                 if ($session['ip_address'] === ($_SERVER['REMOTE_ADDR'] ?? null)) {
+    //                     return true;
     //                 }
-    //             } else {
-    //                 $session->removeSession();
-    //                 throw new Exception("Invalid session");
     //             }
-    //         } else {
-    //             throw new Exception("IP and User_agent is null");
     //         }
-    //     } catch (Exception $e) {
-    //         throw new Exception("Something is wrong");
     //     }
     // }
 
+    private static function authorize(int $userId, string $sessionHash): bool {
+        $session = self::sessionExists($userId, $sessionHash);
+
+        if ($session === null) {
+            return false;
+        }
+
+        if (!hash_equals($session['session_id_hash'], $sessionHash)) {
+            return false;
+        }
+
+        $currentAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        if ($session['user_agent'] !== $currentAgent) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static function sessionExists(int $userId, string $sessionHash): ?array {
+
+        $conn = Database::getConnection();
+
+        $stmt = $conn->prepare('
+            SELECT
+                session_id_hash,
+                ip_address,
+                user_agent
+            FROM user_sessions
+            WHERE user_id = :user_id
+            AND session_id_hash = :session_hash
+            AND revoked_at IS NULL
+            AND expires_at > NOW()
+            LIMIT 1
+        ');
+
+        $stmt->execute([
+            'user_id'      => $userId,
+            'session_hash' => $sessionHash
+        ]);
+
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $session ?: null;
+    }
+    // public static function sessionExists($u_id, $sessionHash){
+    //     $conn = Database::getConnection();
+
+    //     $stmt = $conn->prepare('
+    //         SELECT 
+    //             session_id_hash, 
+    //             ip_address, 
+    //             user_agent 
+    //         FROM user_sessions  
+    //         WHERE id = :id
+    //             AND session_id_hash = :session_hash
+    //             AND revoked_at IS NULL
+    //         LIMIT 1
+    //     ');
+    //     $stmt->execute([
+    //         'id' => $u_id,
+    //         'session_hash' => $sessionHash
+    //     ]);
+
+    //     $session = $stmt->fetch(PDO::FETCH_ASSOC);
+    //     return $session ?: null;
+    // }
 
 
 
@@ -572,6 +639,9 @@ class Session
 
         // Never store raw session_id() in database - store SHA-256 hash
         $sessionHash = self::sessionHash();
+
+        // //TODO
+        // self::set('session_hash_id', $sessionHash);
 
         $ip = $_SERVER['REMOTE_ADDR'] ?? null;
         $agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
