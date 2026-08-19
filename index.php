@@ -2,22 +2,22 @@
 require_once '_core/__init__.php';
 
 
-if(!Session::isAuthenticated()) {
+if (!Session::validate()) {
     header("Location: login.php");
     exit;
 }
 
 // print_r($_SESSION);
 
-$userId = $_SESSION['auth']['user_id'];
+// $userId = $_SESSION['auth']['user_id'];
 // echo $userId;
 
-if (!Session::validateSessionUser($userId)) {
-    Session::logout();
+// if (!Session::validateSessionUser($userId)) {
+//     Session::logout();
 
-    header('Location: login.php');
-    exit;
-}
+//     header('Location: login.php');
+//     exit;
+// }
 
 
 

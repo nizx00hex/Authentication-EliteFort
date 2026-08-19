@@ -1,7 +1,7 @@
 <?php
 include "_core/__init__.php";
 
-if(Session::isAuthenticated()) {
+if (Session::validate()) {
     header("Location: index.php");
     exit;
 }

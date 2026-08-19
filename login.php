@@ -8,12 +8,9 @@ $error = null;
 $success = null;
 
 
-if (Session::isAuthenticated()) {
-
-    if (Session::validate()) {
-        header("Location: index.php");
-        exit;
-    }
+if (Session::validate()) {
+    header("Location: index.php");
+    exit;
 }
 
 if (!Session::isAuthenticated() && RememberMe::exists()) {
