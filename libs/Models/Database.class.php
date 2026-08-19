@@ -4,11 +4,12 @@ class Database
 {
     private static ?PDO $connection = null;
 
+    // Establishes and returns the database connection.
     public static function getConnection(): PDO
     {
         if (self::$connection === null) {
             self::$connection = new PDO(
-                'mysql:host=' . Env::env('DB_HOST') . ';dbname=' . Env::env('DB_NAME') .';charset=utf8mb4',
+                'mysql:host=' . Env::env('DB_HOST') . ';dbname=' . Env::env('DB_NAME') . ';charset=utf8mb4',
                 Env::env('DB_USERNAME'),
                 Env::env('DB_PASSWORD'),
                 [

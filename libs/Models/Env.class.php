@@ -1,7 +1,10 @@
 <?php
-class Env {
-    public static function env(string $key, ?string $default = null): string {
 
+class Env
+{
+    // Gets an environment variable value or returns a default.
+    public static function env(string $key, ?string $default = null): string
+    {
         $value = $_ENV[$key] ?? null;
 
         if ($value === null || $value === '') {
