@@ -48,10 +48,12 @@ class Otp
             throw new RuntimeException('Unable to create OTP.');
         }
         $sent = Mailer::sendOtp((string) $user['email'], $otp);
+        
         if (!$sent) {
             self::clear($userId);
             throw new RuntimeException('Unable to send verification email.');
         }
+        AuditLog::otpSent($userId);
     }
 
     // Verifies the submitted OTP for a user.

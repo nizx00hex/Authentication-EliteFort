@@ -59,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $userId = (int) $user['id'];
 
-        // AuditLog::loginSuccess($userId);
-        // AuditLog::sessionCreated($userId);
+        AuditLog::loginSuccess($userId);
+        AuditLog::sessionCreated($userId);
 
         if (!empty($_POST['remember'])) {
             RememberMe::create($userId);
-            // AuditLog::rememberCreated($userId);
+            AuditLog::rememberCreated($userId);
         }
 
         Csrf::regenerate();

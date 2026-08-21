@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 class Csrf
 {
-    private const KEY = 'csrf_token';
+    //i make this as a public for testing
+    public const KEY = 'csrf_token';
     private const TOKEN_BYTES = 32;
     private const TOKEN_LENGTH = 64;
     private const HEADER_NAME = 'HTTP_X_CSRF_TOKEN';
@@ -44,6 +45,8 @@ class Csrf
     public static function requireValid(?string $token): void
     {
         if (self::verify($token)) {
+            //
+            // echo 1;
             return;
         }
         http_response_code(403);

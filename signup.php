@@ -28,9 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password,
             $cPassword
         );
+        AuditLog::signupSuccess($userId);
         Otp::createForUser(
             $userId
         );
+        
         Session::set(
             'pending_verification_user_id',
             $userId
